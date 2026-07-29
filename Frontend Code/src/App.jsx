@@ -27,6 +27,7 @@ import AvailableEquipmentPage from "./pages/sharing/AvailableEquipmentPage";
 import IncomingRequestsPage from "./pages/sharing/IncomingRequestsPage";
 import OutgoingRequestsPage from "./pages/sharing/OutgoingRequestsPage";
 import SharingHistoryPage from "./pages/sharing/SharingHistoryPage";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
 
 
 function App() {
@@ -52,6 +53,11 @@ function App() {
             <ProtectedRoute >    <LabPage />
             </ProtectedRoute>
           }
+        />
+
+        <Route
+          path="/notifications"
+          element={<NotificationsPage />}
         />
 
         <Route
