@@ -1,0 +1,101 @@
+package com.LabResourceUtilizationPlatform.Repository;
+
+import com.LabResourceUtilizationPlatform.Entity.Department;
+import com.LabResourceUtilizationPlatform.Entity.Enum.EquipmentStatus;
+import com.LabResourceUtilizationPlatform.Entity.Equipment;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.LabResourceUtilizationPlatform.Entity.Lab;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
+
+    Optional<Equipment> findByEquipmentCodeAndLab(
+            String equipmentCode,
+            Lab lab);
+
+    Optional<Equipment> findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+            String equipmentCode,
+            String labCode,
+            String institutionCode);
+
+    List<Equipment> findByLab_LabCodeAndLab_Institution_Code(
+            String labCode,
+            String institutionCode);
+
+    boolean existsByEquipmentCodeAndLab(
+            String equipmentCode,
+            Lab lab);
+
+    boolean existsByEquipmentNameAndLab(
+            String equipmentName,
+            Lab lab);
+
+    List<Equipment> findByLab_Institution_Code(String institutionCode);
+
+    long countByLab_Department_IdAndStatus(Long departmentId, EquipmentStatus status);
+
+
+    Long countByStatus(EquipmentStatus equipmentStatus);
+
+    Long countByLab_Department_Id(Long id);
+
+    Long countByLab_Institution_Id(Long institutionId);
+
+    long countByLabId(Long labId);
+
+    long countByLabIdAndStatus(
+            Long labId,
+            EquipmentStatus status
+    );
+
+    Optional<Equipment> findByEquipmentCodeAndLab_LabManager_Id(
+            String equipmentCode,
+            Long labManagerId
+    );
+
+
+    List<Equipment> findByLab_Department_NameAndLab_Department_Institution_Code(String departmentName, String institutionCode);
+
+    Optional<Equipment> findByEquipmentCode(@NotBlank String equipmentCode);
+
+    @Query("""
+       SELECT COUNT(e)
+       FROM Equipment e
+       """)
+    Long getTotalEquipment();
+
+    @Query("""
+       SELECT COUNT(e)
+       FROM Equipment e
+       WHERE e.status='AVAILABLE'
+       """)
+    Long getAvailableEquipment();
+
+    @Query("""
+       SELECT COUNT(e)
+       FROM Equipment e
+       WHERE e.status='UNDER_MAINTENANCE'
+       """)
+    Long getMaintenanceEquipment();
+
+    Long countByLab_Institution_IdAndStatus(
+            Long institutionId,
+            EquipmentStatus status
+    );
+    @Query("""
+SELECT e
+FROM Equipment e
+WHERE e.lab.institution.id <> :institutionId
+AND e.status = com.LabResourceUtilizationPlatform.Entity.Enum.EquipmentStatus.AVAILABLE
+""")
+    List<Equipment> findAvailableForSharing(
+            @Param("institutionId") Long institutionId
+    );
+}
