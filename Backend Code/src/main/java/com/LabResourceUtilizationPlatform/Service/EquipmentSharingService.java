@@ -1,6 +1,8 @@
 package com.LabResourceUtilizationPlatform.Service;
 
 import com.LabResourceUtilizationPlatform.Dtos.Request.CreateSharingRequest;
+import com.LabResourceUtilizationPlatform.Dtos.Response.DepartmentResponse;
+import com.LabResourceUtilizationPlatform.Dtos.Response.InstitutionResponse;
 import com.LabResourceUtilizationPlatform.Dtos.Response.SharingResponse;
 
 import java.util.List;
@@ -13,16 +15,23 @@ public interface EquipmentSharingService {
      */
     SharingResponse requestEquipment(CreateSharingRequest request);
 
+    List<SharingResponse> getAvailableEquipment(
+            String institutionCode,
+            String departmentName
+    );
+    List<InstitutionResponse> getAvailableInstitutions();
     /**
      * Equipment available for sharing
      * (excluding logged-in institution).
      */
-    List<SharingResponse> getAvailableEquipment();
 
+    List<DepartmentResponse> getDepartments(String institutionCode);
     /**
      * Requests received by my institution.
      */
     List<SharingResponse> getIncomingRequests();
+
+    List<SharingResponse> getDashboardAvailableEquipment();
 
     /**
      * Requests sent by my institution.

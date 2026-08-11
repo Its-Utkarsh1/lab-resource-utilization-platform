@@ -123,6 +123,9 @@ const CreateEquipmentPage = () => {
         quantity: 1,
         hourlyRate: 0,
         status: "AVAILABLE",
+
+        serviceIntervalDays: 180,
+        lastServiceDate: new Date().toISOString().split("T")[0],
     });
 
     useEffect(() => {
@@ -282,6 +285,30 @@ const CreateEquipmentPage = () => {
                                             value={formData.hourlyRate}
                                             onChange={handleChange}
                                             className="ceq-input"
+                                            required
+                                        />
+                                    </Field>
+                                    <Field label="Service Interval (Days)">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            name="serviceIntervalDays"
+                                            value={formData.serviceIntervalDays}
+                                            onChange={handleChange}
+                                            className="ceq-input"
+                                            style={inputStyle}
+                                            required
+                                        />
+                                    </Field>
+
+                                    <Field label="Last Service Date">
+                                        <input
+                                            type="date"
+                                            name="lastServiceDate"
+                                            value={formData.lastServiceDate}
+                                            onChange={handleChange}
+                                            className="ceq-input"
+                                            style={inputStyle}
                                             required
                                         />
                                     </Field>

@@ -1,5 +1,6 @@
 package com.LabResourceUtilizationPlatform.Repository;
 
+import com.LabResourceUtilizationPlatform.Dtos.Response.InstitutionResponse;
 import com.LabResourceUtilizationPlatform.Entity.EquipmentSharing;
 import com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,22 +45,22 @@ public interface EquipmentSharingRepository extends JpaRepository<EquipmentShari
     long countByRequestInstitutionId(Long institutionId);
 
     @Query("""
-SELECT e
-FROM EquipmentSharing e
-WHERE
-(
-    e.ownerInstitution.id = :institutionId
-    OR
-    e.requestInstitution.id = :institutionId
-)
-AND
-e.status IN (
-    com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus.COMPLETED,
-    com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus.REJECTED,
-    com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus.CANCELLED
-)
-ORDER BY e.updatedAt DESC
-""")
+    SELECT e
+    FROM EquipmentSharing e
+    WHERE
+    (
+        e.ownerInstitution.id = :institutionId
+        OR
+        e.requestInstitution.id = :institutionId
+    )
+    AND
+    e.status IN (
+        com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus.COMPLETED,
+        com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus.REJECTED,
+        com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus.CANCELLED
+    )
+    ORDER BY e.updatedAt DESC
+    """)
     List<EquipmentSharing> findSharingHistory(
             @Param("institutionId") Long institutionId
     );

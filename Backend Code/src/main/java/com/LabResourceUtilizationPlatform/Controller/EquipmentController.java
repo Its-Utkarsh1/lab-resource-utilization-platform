@@ -117,7 +117,6 @@ public class EquipmentController {
         return ResponseEntity.ok("Equipment deleted successfully.");
     }
 
-    @PreAuthorize("hasAnyRole('LAB_MANAGER', 'SYSTEM_ADMIN')")
     @GetMapping("/{equipmentCode}/details")
     public ResponseEntity<EquipmentDetailResponse> getEquipmentDetail(
             @PathVariable String equipmentCode,

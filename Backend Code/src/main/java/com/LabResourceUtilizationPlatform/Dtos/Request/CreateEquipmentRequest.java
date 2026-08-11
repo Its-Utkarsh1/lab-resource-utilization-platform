@@ -44,6 +44,10 @@ public class CreateEquipmentRequest {
     @NotBlank
     private String institutionCode;
 
+    private Integer serviceIntervalDays;
+
+    private LocalDate lastServiceDate;
+
     @NotBlank
     private String labCode;
 }

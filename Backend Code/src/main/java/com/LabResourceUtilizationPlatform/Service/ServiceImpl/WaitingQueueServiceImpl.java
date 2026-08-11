@@ -31,9 +31,9 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
 
     private final WaitingQueueRepository waitingQueueRepository;
     private final BookingRepository bookingRepository;
+    private  final NotificationService notificationService;
     private final UserRepository userRepository;
     private final EquipmentServiceCostService equipmentServiceCostService;
-    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -52,12 +52,13 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
                 .build();
 
         waitingQueueRepository.save(queue);
-        notificationService.notifyUser(
-                user,
+
+        notificationService.createNotification(
+                user.getId(),
+                NotificationType.WAITING_QUEUE,
                 "Added to Waiting Queue",
-                "You have been added to the waiting queue for " +
-                        equipment.getEquipmentName() + ".",
-                NotificationType.WAITING_QUEUE
+                "You have been added to the waiting queue for "
+                        + equipment.getEquipmentName() + "."
         );
     }
 
@@ -102,13 +103,13 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
 
         waitingQueueRepository.save(queue);
 
-        notificationService.notifyUser(
-                queue.getUser(),
+        notificationService.createNotification(
+                queue.getUser().getId(),
+                NotificationType.WAITING_QUEUE,
                 "Equipment Allocated",
-                "The equipment '" + queue.getEquipment().getEquipmentName() +
-                        "' is now available and has been allocated to you. Booking Code: "
-                        + booking.getBookingCode(),
-                NotificationType.WAITING_QUEUE
+                "Your waiting request has been allocated. Your booking ("
+                        + booking.getBookingCode()
+                        + ") has been confirmed."
         );
     }
 
@@ -124,12 +125,13 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
 
         waitingQueueRepository.save(queue);
 
-        notificationService.notifyUser(
-                queue.getUser(),
+        notificationService.createNotification(
+                queue.getUser().getId(),
+                NotificationType.WAITING_QUEUE,
                 "Waiting Queue Cancelled",
-                "You have been removed from the waiting queue for " +
-                        queue.getEquipment().getEquipmentName() + ".",
-                NotificationType.WAITING_QUEUE
+                "Your waiting queue request for "
+                        + queue.getEquipment().getEquipmentName()
+                        + " has been cancelled."
         );
     }
 

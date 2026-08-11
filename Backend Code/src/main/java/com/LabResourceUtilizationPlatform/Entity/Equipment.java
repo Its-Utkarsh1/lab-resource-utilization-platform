@@ -61,6 +61,10 @@ public class Equipment {
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EquipmentStatus status;
@@ -68,6 +72,16 @@ public class Equipment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lab_id", nullable = false)
     private Lab lab;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer serviceIntervalDays = 180;
+
+    @Column(nullable = false)
+    private LocalDate lastServiceDate;
+
+    @Column(nullable = false)
+    private LocalDate nextServiceDate;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

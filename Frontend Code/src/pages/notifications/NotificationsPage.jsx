@@ -13,12 +13,12 @@ const NotificationsPage = () => {
     const [unreadOnly, setUnreadOnly] = useState(false);
 
     const unreadCount = useMemo(
-        () => notifications.filter((n) => !n.read).length,
+        () => notifications.filter((n) => !n.isRead).length,
         [notifications]
     );
 
     const visibleNotifications = useMemo(
-        () => (unreadOnly ? notifications.filter((n) => !n.read) : notifications),
+        () => (unreadOnly ? notifications.filter((n) => !n.isRead) : notifications),
         [notifications, unreadOnly]
     );
 

@@ -1,27 +1,36 @@
-import React from 'react'
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-      </div>
-    )
-  }
+  console.log("User:", user);
+  console.log("Allowed Roles:", allowedRoles);
+
+  if (isLoading) return <div>Loading...</div>;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />
+  if (!allowedRoles) {
+    return children;
   }
 
-  return children
-}
+  const role =
+    user?.role?.roleName ??
+    user?.roleName ??
+    user?.role;
 
-export default ProtectedRoute
+  console.log("Resolved Role:", role);
+
+  if (!allowedRoles.includes(role)) {
+    console.log("Access Denied");
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
+export default ProtectedRoute;

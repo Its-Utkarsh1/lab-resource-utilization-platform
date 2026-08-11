@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
     useAvailableEquipment,
+    useAvailableInstitutions,
+    useDepartments,
     useRequestEquipment,
 } from "../../hooks/useSharing";
 
@@ -14,30 +16,39 @@ const emptyForm = {
 };
 
 const AvailableEquipmentPage = () => {
-    const { data: equipment = [], isLoading } = useAvailableEquipment();
-    const requestMutation = useRequestEquipment();
 
     const [selectedInstitution, setSelectedInstitution] = useState("");
+    const [selectedDepartment, setSelectedDepartment] = useState("");
     const [search, setSearch] = useState("");
     const [selectedEquipment, setSelectedEquipment] = useState(null);
     const [formData, setFormData] = useState(emptyForm);
     const [formError, setFormError] = useState("");
 
-    const institutions = useMemo(
-        () => [...new Set(equipment.map((e) => e.ownerInstitution))],
-        [equipment]
-    );
+    const {
+        data: institutions = [],
+        isLoading: institutionsLoading,
+    } = useAvailableInstitutions();
+
+    console.log("Institutions:", institutions);
+
+    const { data: departments = [] } =
+        useDepartments(selectedInstitution);
+
+    const { data: equipment = [], isLoading } =
+        useAvailableEquipment(
+            selectedInstitution,
+            selectedDepartment
+        );
+
+    const requestMutation = useRequestEquipment();
 
     const filteredEquipment = useMemo(() => {
-        if (!selectedInstitution) return [];
-        return equipment.filter((e) => {
-            const matchesInstitution = e.ownerInstitution === selectedInstitution;
-            const matchesSearch = e.equipmentName
+        return equipment.filter((e) =>
+            e.equipmentName
                 .toLowerCase()
-                .includes(search.trim().toLowerCase());
-            return matchesInstitution && matchesSearch;
-        });
-    }, [equipment, selectedInstitution, search]);
+                .includes(search.trim().toLowerCase())
+        );
+    }, [equipment, search]);
 
     const openRequestModal = (item) => {
         setSelectedEquipment(item);
@@ -111,16 +122,45 @@ const AvailableEquipmentPage = () => {
                             <select
                                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 value={selectedInstitution}
-                                onChange={(e) => setSelectedInstitution(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedInstitution(e.target.value);
+                                    setSelectedDepartment("");
+                                }}
                             >
                                 <option value="">Select an institution</option>
                                 {institutions.map((institution) => (
-                                    <option key={institution} value={institution}>
-                                        {institution}
+                                    <option
+                                        key={institution.code}
+                                        value={institution.code}
+                                    >
+                                        {institution.name}
                                     </option>
                                 ))}
                             </select>
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Department
+                            </label>
+
+                            <select
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                                value={selectedDepartment}
+                                onChange={(e) => setSelectedDepartment(e.target.value)}
+                                disabled={!selectedInstitution}                            >
+                                <option value="">Select Department</option>
+
+                                {departments.map((department) => (
+                                    <option
+                                        key={department.name}
+                                        value={department.name}
+                                    >
+                                        {department.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -145,17 +185,17 @@ const AvailableEquipmentPage = () => {
                             <div className="h-8 w-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
                             <p className="text-sm">Loading equipment...</p>
                         </div>
-                    ) : !selectedInstitution ? (
+                    ) : !selectedInstitution || !selectedDepartment ? (
                         <div className="py-16 flex flex-col items-center justify-center text-center px-6">
                             <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
                                 <span className="text-emerald-600 text-xl">🏛️</span>
                             </div>
                             <h3 className="text-base font-semibold text-gray-900">
-                                Select an institution
+                                Select Institution and Department
                             </h3>
+
                             <p className="text-sm text-gray-500 mt-1 max-w-sm">
-                                Choose an institution above to view the equipment it currently
-                                has available for sharing.
+                                Select an institution and then a department to view available equipment.
                             </p>
                         </div>
                     ) : filteredEquipment.length === 0 ? (

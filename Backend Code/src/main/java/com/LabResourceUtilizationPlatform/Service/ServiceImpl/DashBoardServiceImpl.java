@@ -6,13 +6,11 @@ import com.LabResourceUtilizationPlatform.Entity.Enum.BookingStatus;
 import com.LabResourceUtilizationPlatform.Entity.Enum.EquipmentStatus;
 import com.LabResourceUtilizationPlatform.Entity.Enum.RoleName;
 import com.LabResourceUtilizationPlatform.Entity.Institution;
-import com.LabResourceUtilizationPlatform.Entity.Lab;
 import com.LabResourceUtilizationPlatform.Entity.User;
 import com.LabResourceUtilizationPlatform.Repository.*;
 import com.LabResourceUtilizationPlatform.Service.DashBoardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -250,25 +248,25 @@ public class DashBoardServiceImpl implements DashBoardService {
 
         return TechnicianDashboardResponse.builder()
                 .availableEquipment(
-                        equipmentRepository.countByLab_Department_IdAndStatus(
+                        equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                                 departmentId,
                                 EquipmentStatus.AVAILABLE
                         )
                 )
                 .inUseEquipment(
-                        equipmentRepository.countByLab_Department_IdAndStatus(
+                        equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                                 departmentId,
                                 EquipmentStatus.IN_USE
                         )
                 )
                 .underMaintenance(
-                        equipmentRepository.countByLab_Department_IdAndStatus(
+                        equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                                 departmentId,
                                 EquipmentStatus.UNDER_MAINTENANCE
                         )
                 )
                 .outOfService(
-                        equipmentRepository.countByLab_Department_IdAndStatus(
+                        equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                                 departmentId,
                                 EquipmentStatus.OUT_OF_SERVICE
                         )
@@ -336,7 +334,7 @@ public class DashBoardServiceImpl implements DashBoardService {
                         )
                 )
                 .availableEquipment(
-                        equipmentRepository.countByStatus(
+                        equipmentRepository.countByStatusAndActiveTrue(
                                 EquipmentStatus.AVAILABLE
                         )
                 )
@@ -393,7 +391,7 @@ public class DashBoardServiceImpl implements DashBoardService {
                         )
                 )
                 .departmentEquipment(
-                        equipmentRepository.countByLab_Department_Id(
+                        equipmentRepository.countByLab_Department_IdAndActiveTrue(
                                 user.getDepartment().getId()
                         )
                 )
@@ -413,22 +411,22 @@ public class DashBoardServiceImpl implements DashBoardService {
         Long departmentId = user.getDepartment().getId();
 
         long totalEquipment =
-                equipmentRepository.countByLab_Department_Id(departmentId);
+                equipmentRepository.countByLab_Department_IdAndActiveTrue(departmentId);
 
         long availableEquipment =
-                equipmentRepository.countByLab_Department_IdAndStatus(
+                equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                         departmentId,
                         EquipmentStatus.AVAILABLE
                 );
 
         long maintenanceEquipment =
-                equipmentRepository.countByLab_Department_IdAndStatus(
+                equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                         departmentId,
                         EquipmentStatus.UNDER_MAINTENANCE
                 );
 
         long outOfServiceEquipment =
-                equipmentRepository.countByLab_Department_IdAndStatus(
+                equipmentRepository.countByLab_Department_IdAndStatusAndActiveTrue(
                         departmentId,
                         EquipmentStatus.OUT_OF_SERVICE
                 );
@@ -446,6 +444,18 @@ public class DashBoardServiceImpl implements DashBoardService {
                 );
 
         long cancelledBookings =
+                bookingRepository.countByEquipment_Lab_Department_IdAndStatus(
+                        departmentId,
+                        BookingStatus.CANCELLED
+                );
+
+        long pendingBookings =
+                bookingRepository.countByEquipment_Lab_Department_IdAndStatus(
+                        departmentId,
+                        BookingStatus.PENDING
+                );
+
+        long rejectedBookings =
                 bookingRepository.countByEquipment_Lab_Department_IdAndStatus(
                         departmentId,
                         BookingStatus.CANCELLED
@@ -475,9 +485,9 @@ public class DashBoardServiceImpl implements DashBoardService {
                 .maintenanceEquipment(maintenanceEquipment)
                 .outOfServiceEquipment(outOfServiceEquipment)
 
-                .activeBookings(equipmentInUse)
-                .completedBookings(completedBookings)
-                .cancelledBookings(cancelledBookings)
+                .pendingBookings(pendingBookings)
+                .approvedToday(completedBookings)
+                .rejectedBookings(rejectedBookings)
 
                 .todayMaintenance(List.of())
                 .build();
@@ -523,7 +533,7 @@ public class DashBoardServiceImpl implements DashBoardService {
                 .totalLabs(
                         labRepository.countByDepartmentId(departmentId))
                 .totalEquipment(
-                        equipmentRepository.countByLab_Department_Id(departmentId))
+                        equipmentRepository.countByLab_Department_IdAndActiveTrue(departmentId))
                 .activeBookings(
                         bookingRepository.countByEquipment_Lab_Department_Id(departmentId))
                 .departmentUsers(
@@ -543,6 +553,37 @@ public class DashBoardServiceImpl implements DashBoardService {
 
         Long institutionId = user.getInstitution().getId();
 
+        long availableEquipment =
+                equipmentRepository.countByLab_Institution_IdAndStatusAndActiveTrue(
+                        institutionId,
+                        EquipmentStatus.AVAILABLE
+                );
+
+        long maintenanceEquipment =
+                equipmentRepository.countByLab_Institution_IdAndStatusAndActiveTrue(
+                        institutionId,
+                        EquipmentStatus.UNDER_MAINTENANCE
+                );
+
+        long bookedEquipment =
+                bookingRepository.countByEquipment_Lab_Institution_IdAndStatus(
+                        institutionId,
+                        BookingStatus.CONFIRMED
+                );
+
+        long totalFaculty =
+                userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.PROFESSOR)
+                        + userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.ASSOCIATE_PROFESSOR)
+                        + userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.ASSISTANT_PROFESSOR);
+
+        long totalResearchers =
+                userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.RESEARCHER)
+                        + userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.RESEARCH_ASSOCIATE)
+                        + userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.RESEARCH_SCIENTIST);
+
+        long totalStudents =
+                userRepository.countByInstitutionIdAndRole_RoleName(institutionId, RoleName.STUDENT);
+
         return InstitutionAdminDashboardResponse.builder()
                 .totalDepartments(
                         departmentRepository.countByInstitutionId(institutionId)
@@ -551,7 +592,7 @@ public class DashBoardServiceImpl implements DashBoardService {
                         labRepository.countByInstitutionId(institutionId)
                 )
                 .totalEquipment(
-                        equipmentRepository.countByLab_Institution_Id(institutionId)
+                        equipmentRepository.countByLab_Institution_IdAndActiveTrue(institutionId)
                 )
                 .totalUsers(
                         userRepository.countByInstitutionId(institutionId)
@@ -559,6 +600,16 @@ public class DashBoardServiceImpl implements DashBoardService {
                 .monthlyBookings(
                         bookingRepository.countByInstitutionId(institutionId)
                 )
+
+                .totalFaculty(totalFaculty)
+                .totalResearchers(totalResearchers)
+                .totalStudents(totalStudents)
+
+                .availableEquipment(availableEquipment)
+                .bookedEquipment(bookedEquipment)
+                .maintenanceEquipment(maintenanceEquipment)
+
+                .recentActivities(List.of())
                 .build();
     }
 
@@ -585,7 +636,9 @@ public class DashBoardServiceImpl implements DashBoardService {
                 .totalInstitutions(institutionRepository.count())
                 .totalDepartments(departmentRepository.count())
                 .totalLabs(labRepository.count())
-                .totalEquipment(equipmentRepository.count())
+                .totalEquipment(
+                        equipmentRepository.getTotalEquipment()
+                )
                 .totalUsers(userRepository.count())
                 .recentActivities(recentActivities)
                 .build();

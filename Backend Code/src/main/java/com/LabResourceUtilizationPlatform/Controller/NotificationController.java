@@ -3,6 +3,7 @@ package com.LabResourceUtilizationPlatform.Controller;
 import com.LabResourceUtilizationPlatform.Dtos.Response.NotificationDTO;
 import com.LabResourceUtilizationPlatform.Service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,35 +15,35 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    // Get all notifications of logged-in user
     @GetMapping
-    public List<NotificationDTO> getMyNotifications() {
-        return notificationService.getMyNotifications();
+    public ResponseEntity<List<NotificationDTO>> getMyNotifications() {
+        return ResponseEntity.ok(notificationService.getMyNotifications());
     }
 
-    // Get unread notifications
     @GetMapping("/unread")
-    public List<NotificationDTO> getUnreadNotifications() {
-        return notificationService.getUnreadNotifications();
+    public ResponseEntity<List<NotificationDTO>> getUnreadNotifications() {
+        return ResponseEntity.ok(notificationService.getUnreadNotifications());
     }
 
-    // Get unread notification count
-    @GetMapping("/count")
-    public long getUnreadCount() {
-        return notificationService.unreadCount();
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> unreadCount() {
+        return ResponseEntity.ok(notificationService.unreadCount());
     }
 
-    // Mark a notification as read
-    @PutMapping("/{id}/read")
-    public String markAsRead(@PathVariable Long id) {
-        notificationService.markRead(id);
-        return "Notification marked as read successfully.";
+    @PutMapping("/{notificationId}/read")
+    public ResponseEntity<String> markRead(
+            @PathVariable Long notificationId) {
+
+        notificationService.markRead(notificationId);
+
+        return ResponseEntity.ok("Notification marked as read");
     }
 
-    // Mark all notifications as read
     @PutMapping("/read-all")
-    public String markAllAsRead() {
+    public ResponseEntity<String> markAllRead() {
+
         notificationService.markAllRead();
-        return "All notifications marked as read successfully.";
+
+        return ResponseEntity.ok("All notifications marked as read");
     }
 }

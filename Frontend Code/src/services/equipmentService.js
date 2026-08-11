@@ -21,12 +21,38 @@ const equipmentService = {
     return response.data;
   },
 
+  getDetails: async (
+  institutionCode,
+  labCode,
+  equipmentCode
+) => {
+  const response = await api.get(
+    `/equipment/${equipmentCode}/details`,
+    {
+      params: {
+        institutionCode,
+        labCode,
+      },
+    }
+  );
+
+  return response.data;
+},
+
   getByCode: async (institutionCode, labCode, equipmentCode) => {
-    const response = await api.get(
-      `/equipment/${institutionCode}/${labCode}/${equipmentCode}`
-    );
-    return response.data;
-  },
+
+  console.log({
+    institutionCode,
+    labCode,
+    equipmentCode,
+  });
+
+  const response = await api.get(
+    `/equipment/${institutionCode}/${labCode}/${equipmentCode}`
+  );
+
+  return response.data;
+},
 
   getByLab: async (institutionCode, labCode) => {
     const response = await api.get(

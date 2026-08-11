@@ -5,22 +5,18 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 public class NotificationDTO {
 
     private Long id;
+
+    private NotificationType type;
 
     private String title;
 
     private String message;
 
-    private NotificationType type;
-
-    private Boolean isRead;
+    private Boolean read;
 
     private LocalDateTime createdAt;
 }

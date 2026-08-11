@@ -33,7 +33,6 @@ const MyBookingsPage = () => {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
-
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">
             My Bookings
@@ -41,7 +40,7 @@ const MyBookingsPage = () => {
 
           <Link
             to="/labs"
-            className="bg-green-600 text-white px-5 py-2 rounded-lg"
+            className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700"
           >
             Browse Labs
           </Link>
@@ -59,56 +58,59 @@ const MyBookingsPage = () => {
           </div>
         ) : (
           <div className="space-y-5">
-
             {myBookings.map((booking) => (
-
               <div
                 key={booking.bookingCode}
                 className="bg-white rounded-xl shadow border p-6 flex justify-between items-center"
               >
+                <div className="flex items-center gap-6">
 
-                <div>
+                  {/* Equipment Image */}
+                  <img
+                    src={
+                      booking.equipmentImage
+                        ? `http://localhost:8080${booking.equipmentImage}`
+                        : "/images/default-equipment.png"
+                    }
+                    alt={booking.equipmentName}
+                    className="w-32 h-32 object-cover rounded-xl border"
+                  />
 
-                  <h2 className="text-xl font-semibold">
-                    {booking.equipmentName}
-                  </h2>
+                  {/* Booking Details */}
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      {booking.equipmentName}
+                    </h2>
 
-                  <p className="text-sm text-slate-500 mt-2">
-                    Booking Code :
-                    {" "}
-                    {booking.bookingCode}
-                  </p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      <strong>Booking Code:</strong> {booking.bookingCode}
+                    </p>
 
-                  <p className="text-sm text-slate-500">
-                    Purpose :
-                    {" "}
-                    {booking.purpose}
-                  </p>
+                    <p className="text-sm text-slate-500">
+                      <strong>Purpose:</strong> {booking.purpose}
+                    </p>
 
-                  <p className="text-sm text-slate-500">
-                    Quantity :
-                    {" "}
-                    {booking.quantity}
-                  </p>
+                    <p className="text-sm text-slate-500">
+                      <strong>Quantity:</strong> {booking.quantity}
+                    </p>
 
-                  <p className="text-sm text-slate-500">
-                    Start :
-                    {" "}
-                    {new Date(booking.startTime).toLocaleString("en-IN")}
-                  </p>
+                    <p className="text-sm text-slate-500">
+                      <strong>Start:</strong>{" "}
+                      {new Date(booking.startTime).toLocaleString("en-IN")}
+                    </p>
 
-                  <p className="text-sm text-slate-500">
-                    End :
-                    {" "}
-                    {new Date(booking.endTime).toLocaleString("en-IN")}
-                  </p>
+                    <p className="text-sm text-slate-500">
+                      <strong>End:</strong>{" "}
+                      {new Date(booking.endTime).toLocaleString("en-IN")}
+                    </p>
 
-                  <span className="inline-block mt-3 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                    {booking.status}
-                  </span>
-
+                    <span className="inline-block mt-3 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                      {booking.status}
+                    </span>
+                  </div>
                 </div>
 
+                {/* Cancel Button */}
                 {booking.status === "PENDING" && (
                   <button
                     onClick={() => handleCancel(booking.bookingCode)}
@@ -120,14 +122,10 @@ const MyBookingsPage = () => {
                       : "Cancel Booking"}
                   </button>
                 )}
-
               </div>
-
             ))}
-
           </div>
         )}
-
       </div>
     </DashboardLayout>
   );

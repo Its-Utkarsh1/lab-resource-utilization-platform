@@ -77,7 +77,7 @@ const SystemAdminDashboard = () => {
 
       </div>
 
-      {/* Quick Actions */}
+
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow border p-6">
 
@@ -85,7 +85,7 @@ const SystemAdminDashboard = () => {
           Quick Actions
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
 
           <Link
             to="/institutions/create"
@@ -95,10 +95,17 @@ const SystemAdminDashboard = () => {
           </Link>
 
           <Link
-            to="/users"
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-4 text-center font-medium transition"
+            to="/departments/create"
+            className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-4 text-center font-medium transition"
           >
-            Manage Users
+            Create Department
+          </Link>
+
+          <Link
+            to="/labs/create"
+            className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg p-4 text-center font-medium transition"
+          >
+            Create Lab
           </Link>
 
           <Link
@@ -211,10 +218,10 @@ const SystemAdminDashboard = () => {
 
                       <span
                         className={`font-medium ${activity.status === "Completed"
-                            ? "text-green-600"
-                            : activity.status === "Running"
-                              ? "text-amber-600"
-                              : "text-blue-600"
+                          ? "text-green-600"
+                          : activity.status === "Running"
+                            ? "text-amber-600"
+                            : "text-blue-600"
                           }`}
                       >
                         {activity.status}

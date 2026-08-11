@@ -38,41 +38,44 @@ public class LabServiceImpl implements LabService {
     @Override
     public LabResponse createLab(CreateLabRequest request) {
 
+        System.out.println(request);
+
         Institution institution = institutionRepository.findByCode(request.getInstitutionCode())
                 .orElseThrow(() -> new RuntimeException("Institution not found."));
+        System.out.println("Institution OK");
 
         Department department = departmentRepository
                 .findByNameAndInstitution_Code(
                         request.getDepartmentName(),
                         institution.getCode())
                 .orElseThrow(() -> new RuntimeException("Department not found."));
+        System.out.println("Department OK");
 
         User labManager = userRepository.findByEmail(request.getManagerEmail())
                 .orElseThrow(() -> new RuntimeException("Lab Manager not found."));
+        System.out.println("Lab Manager OK");
 
         if (labManager.getRole().getRoleName() != RoleName.LAB_MANAGER) {
             throw new RuntimeException("Selected user is not a Lab Manager.");
         }
+        System.out.println("Role OK");
 
         if (labRepository.existsByLabManager_Id(labManager.getId())) {
             throw new RuntimeException("This Lab Manager is already assigned to another lab.");
         }
+        System.out.println("Manager Available");
 
         if (labRepository.existsByLabCodeAndInstitutionAndDepartment(
-                request.getLabCode(),
-                institution,
-                department)) {
-
-            throw new RuntimeException("Lab code already exists in this department.");
+                request.getLabCode(), institution, department)) {
+            throw new RuntimeException("Lab code already exists.");
         }
+        System.out.println("Lab Code OK");
 
         if (labRepository.existsByLabNameAndInstitutionAndDepartment(
-                request.getLabName(),
-                institution,
-                department)) {
-
-            throw new RuntimeException("Lab name already exists in this department.");
+                request.getLabName(), institution, department)) {
+            throw new RuntimeException("Lab name already exists.");
         }
+        System.out.println("Lab Name OK");
 
         Lab lab = Lab.builder()
                 .labName(request.getLabName())
@@ -85,22 +88,14 @@ public class LabServiceImpl implements LabService {
                 .labManager(labManager)
                 .build();
 
-        System.out.println("Manager Email: " + request.getManagerEmail());
-        System.out.println("Manager ID: " + labManager.getId());
-        System.out.println("Manager Role: " + labManager.getRole().getRoleName());
+        System.out.println("Saving...");
 
-        System.out.println("Lab Manager Before Save: " + lab.getLabManager());
+        Lab saved = labRepository.save(lab);
 
-        Lab savedLab = labRepository.save(lab);
+        System.out.println("Saved Successfully");
 
-        System.out.println("Lab Manager After Save: " + savedLab.getLabManager());
-        System.out.println("Lab Manager ID After Save: " +
-                (savedLab.getLabManager() != null ? savedLab.getLabManager().getId() : null));
-
-        logger.info("Lab created successfully: {}", savedLab.getLabName());
-        return mapToResponse(savedLab);
+        return mapToResponse(saved);
     }
-
     @Override
     public List<LabResponse> getLabsByDepartment(
             String institutionCode,

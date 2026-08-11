@@ -74,35 +74,49 @@ const LabManagerDashboard = () => {
 
       </div>
 
-      {/* Quick Actions */}
 
+      {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow border p-6">
 
         <h2 className="text-xl font-semibold mb-5">
           Quick Actions
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+
+          <Link
+            to="/equipment/create"
+            className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-4 text-center font-medium transition"
+          >
+            Add Equipment
+          </Link>
 
           <Link
             to="/labs"
-            className="bg-green-600 text-white rounded-lg p-4 text-center hover:bg-green-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-4 text-center font-medium transition"
           >
             Manage Equipment
           </Link>
 
           <Link
             to="/bookings/manage"
-            className="bg-blue-600 text-white rounded-lg p-4 text-center hover:bg-blue-700"
+            className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg p-4 text-center font-medium transition"
           >
             Manage Bookings
           </Link>
 
           <Link
             to="/maintenance"
-            className="bg-orange-600 text-white rounded-lg p-4 text-center hover:bg-orange-700"
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg p-4 text-center font-medium transition"
           >
-            Maintenance
+            Schedule Maintenance
+          </Link>
+
+          <Link
+            to="/analytics"
+            className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg p-4 text-center font-medium transition"
+          >
+            View Analytics
           </Link>
 
         </div>

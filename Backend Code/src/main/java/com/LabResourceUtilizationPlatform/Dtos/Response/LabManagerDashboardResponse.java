@@ -25,5 +25,9 @@ public class LabManagerDashboardResponse {
     private Long completedBookings;
     private Long cancelledBookings;
 
+    private Long pendingBookings;
+    private Long approvedToday;
+    private Long rejectedBookings;
+
     private List<MaintenanceResponse> todayMaintenance;
 }

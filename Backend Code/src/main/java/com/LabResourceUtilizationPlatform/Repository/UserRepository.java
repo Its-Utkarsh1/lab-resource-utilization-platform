@@ -32,6 +32,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
             String institutionCode,
             String departmentName
     );
+    Long countByInstitutionIdAndRole_RoleName(Long institutionId, RoleName roleName);
 
 
 }

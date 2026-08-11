@@ -2,26 +2,25 @@ package com.LabResourceUtilizationPlatform.Service;
 
 import com.LabResourceUtilizationPlatform.Dtos.Response.NotificationDTO;
 import com.LabResourceUtilizationPlatform.Entity.Enum.NotificationType;
-import com.LabResourceUtilizationPlatform.Entity.User;
 
 import java.util.List;
 
 public interface NotificationService {
 
-    void notifyUser(
-            User user,
+    void createNotification(
+            Long userId,
+            NotificationType type,
             String title,
-            String message,
-            NotificationType type
+            String message
     );
 
     List<NotificationDTO> getMyNotifications();
 
     List<NotificationDTO> getUnreadNotifications();
 
-    void markRead(Long id);
+    long unreadCount();
+
+    void markRead(Long notificationId);
 
     void markAllRead();
-
-    long unreadCount();
 }

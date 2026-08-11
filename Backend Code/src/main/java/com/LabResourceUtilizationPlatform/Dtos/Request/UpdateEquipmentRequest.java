@@ -51,6 +51,10 @@ public class UpdateEquipmentRequest {
     @NotBlank(message = "Lab code is required.")
     private String labCode;
 
+    private Integer serviceIntervalDays;
+
+    private LocalDate lastServiceDate;
+
     @NotBlank(message = "Institution code is required.")
     private String institutionCode;
 }

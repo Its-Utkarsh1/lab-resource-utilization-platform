@@ -1,18 +1,24 @@
 package com.LabResourceUtilizationPlatform.Service.ServiceImpl;
 
 import com.LabResourceUtilizationPlatform.Dtos.Request.CreateSharingRequest;
+import com.LabResourceUtilizationPlatform.Dtos.Response.DepartmentResponse;
+import com.LabResourceUtilizationPlatform.Dtos.Response.InstitutionResponse;
 import com.LabResourceUtilizationPlatform.Dtos.Response.SharingResponse;
+import com.LabResourceUtilizationPlatform.Dtos.Response.UserResponse;
 import com.LabResourceUtilizationPlatform.Entity.*;
+import com.LabResourceUtilizationPlatform.Entity.Enum.EquipmentStatus;
 import com.LabResourceUtilizationPlatform.Entity.Enum.NotificationType;
 import com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus;
 import com.LabResourceUtilizationPlatform.Repository.EquipmentRepository;
 import com.LabResourceUtilizationPlatform.Repository.EquipmentSharingRepository;
 import com.LabResourceUtilizationPlatform.Repository.InstitutionRepository;
 import com.LabResourceUtilizationPlatform.Repository.UserRepository;
+import com.LabResourceUtilizationPlatform.Service.AuthService;
 import com.LabResourceUtilizationPlatform.Service.EquipmentSharingService;
 import com.LabResourceUtilizationPlatform.Service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,6 +36,56 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
     private final EquipmentRepository equipmentRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final InstitutionRepository institutionRepository;
+    private final ModelMapper modelMapper;
+    private final AuthService authService;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InstitutionResponse> getAvailableInstitutions() {
+
+        User loggedInUser = getLoggedInUser();
+
+        Long myInstitutionId = loggedInUser.getInstitution().getId();
+
+        return institutionRepository.findAllExcept(myInstitutionId)
+                .stream()
+                .map(institution -> modelMapper.map(institution, InstitutionResponse.class))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SharingResponse> getDashboardAvailableEquipment() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        Long institutionId = currentUser.getInstitution().getId();
+
+        return equipmentRepository
+                .findAvailableForSharingExceptInstitution(institutionId)
+                .stream()
+                .map(equipment -> SharingResponse.builder()
+                        .equipmentCode(equipment.getEquipmentCode())
+                        .equipmentName(equipment.getEquipmentName())
+                        .ownerInstitution(
+                                equipment.getLab()
+                                        .getDepartment()
+                                        .getInstitution()
+                                        .getName()
+                        )
+                        .quantity(equipment.getQuantity())
+                        .build())
+                .toList();
+    }
+
+
 
     private User getLoggedInUser() {
 
@@ -72,7 +128,7 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
         User loggedInUser = getLoggedInUser();
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCode(request.getEquipmentCode())
+                .findByEquipmentCodeAndActiveTrue(request.getEquipmentCode())
                 .orElseThrow(() ->
                         new EntityNotFoundException("Equipment not found."));
 
@@ -109,13 +165,12 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
                 .build();
 
         equipmentSharingRepository.save(sharing);
-        notificationService.notifyUser(
-                equipment.getLab().getLabManager(),
-                "New Sharing Request",
-                loggedInUser.getInstitution().getName()
-                        + " has requested "
-                        + equipment.getEquipmentName() + ".",
-                NotificationType.SHARING
+
+        notificationService.createNotification(
+                loggedInUser.getId(),
+                NotificationType.EQUIPMENT_SHARING,
+                "Sharing Request Submitted",
+                "Your equipment sharing request has been submitted successfully."
         );
 
         return mapToResponse(sharing);
@@ -123,21 +178,43 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SharingResponse> getAvailableEquipment() {
-
-        User loggedInUser = getLoggedInUser();
-
-        Long institutionId = loggedInUser.getInstitution().getId();
+    public List<SharingResponse> getAvailableEquipment(
+            String institutionCode,
+            String departmentName) {
 
         return equipmentRepository
-                .findAvailableForSharing(institutionId)
+                .findAvailableEquipment(
+                        institutionCode,
+                        departmentName
+                )
                 .stream()
                 .map(equipment -> SharingResponse.builder()
                         .equipmentCode(equipment.getEquipmentCode())
                         .equipmentName(equipment.getEquipmentName())
-                        .ownerInstitution(equipment.getLab().getInstitution().getName())
+                        .ownerInstitution(
+                                equipment.getLab()
+                                        .getDepartment()
+                                        .getInstitution()
+                                        .getName()
+                        )
                         .quantity(equipment.getQuantity())
                         .build())
+                .toList();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DepartmentResponse> getDepartments(String institutionCode) {
+
+        Institution institution = institutionRepository
+                .findByCode(institutionCode)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Institution not found."));
+
+        return institution.getDepartments()
+                .stream()
+                .map(department -> modelMapper.map(department, DepartmentResponse.class))
                 .toList();
     }
 
@@ -215,13 +292,11 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
         equipmentSharingRepository.save(sharing);
 
-        notificationService.notifyUser(
-                sharing.getRequestedBy(),
+        notificationService.createNotification(
+                sharing.getRequestedBy().getId(),
+                NotificationType.EQUIPMENT_SHARING,
                 "Sharing Request Approved",
-                "Your request for "
-                        + sharing.getEquipment().getEquipmentName()
-                        + " has been approved.",
-                NotificationType.SHARING
+                "Your equipment sharing request has been approved."
         );
 
         return mapToResponse(sharing);
@@ -258,13 +333,11 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
         equipmentSharingRepository.save(sharing);
 
-        notificationService.notifyUser(
-                sharing.getRequestedBy(),
+        notificationService.createNotification(
+                sharing.getRequestedBy().getId(),
+                NotificationType.EQUIPMENT_SHARING,
                 "Sharing Request Rejected",
-                "Your request for "
-                        + sharing.getEquipment().getEquipmentName()
-                        + " has been rejected.",
-                NotificationType.SHARING
+                "Your equipment sharing request has been rejected."
         );
 
         return mapToResponse(sharing);
@@ -300,13 +373,11 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
         equipmentSharingRepository.save(sharing);
 
-        notificationService.notifyUser(
-                sharing.getRequestedBy(),
-                "Equipment Sharing Started",
-                "Equipment "
-                        + sharing.getEquipment().getEquipmentName()
-                        + " is now ready for sharing.",
-                NotificationType.SHARING
+        notificationService.createNotification(
+                sharing.getRequestedBy().getId(),
+                NotificationType.EQUIPMENT_SHARING,
+                "Sharing Started",
+                "Equipment sharing has started."
         );
 
         return mapToResponse(sharing);
@@ -351,19 +422,11 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
         equipmentSharingRepository.save(sharing);
 
-        notificationService.notifyUser(
-                sharing.getRequestedBy(),
+        notificationService.createNotification(
+                sharing.getRequestedBy().getId(),
+                NotificationType.EQUIPMENT_SHARING,
                 "Sharing Completed",
-                "Equipment sharing has been completed.",
-                NotificationType.SHARING
-        );
-
-        notificationService.notifyUser(
-                sharing.getApprovedBy(),
-                "Equipment Returned",
-                sharing.getEquipment().getEquipmentName()
-                        + " has been returned successfully.",
-                NotificationType.SHARING
+                "Equipment sharing has been completed."
         );
 
         return mapToResponse(sharing);
@@ -399,13 +462,11 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
         equipmentSharingRepository.save(sharing);
 
-        notificationService.notifyUser(
-                sharing.getEquipment().getLab().getLabManager(),
-                "Sharing Request Cancelled",
-                "The sharing request for "
-                        + sharing.getEquipment().getEquipmentName()
-                        + " has been cancelled.",
-                NotificationType.SHARING
+        notificationService.createNotification(
+                sharing.getRequestedBy().getId(),
+                NotificationType.EQUIPMENT_SHARING,
+                "Sharing Cancelled",
+                "Your sharing request has been cancelled."
         );
 
         return mapToResponse(sharing);

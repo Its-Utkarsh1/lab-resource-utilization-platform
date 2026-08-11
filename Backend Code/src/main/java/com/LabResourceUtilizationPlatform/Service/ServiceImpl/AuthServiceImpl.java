@@ -79,16 +79,21 @@ public class AuthServiceImpl implements AuthService {
                 .emailVerified(user.getEmailVerified())
                 .build();
     }
-    @Transactional
+
     @Override
+    @Transactional
     public UserResponse getCurrentUser() {
 
         String email = SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getName();
 
+        System.out.println("Authenticated Email = " + email);
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found."));
+
+        System.out.println("Database User = " + user.getEmail());
 
         UserResponse response = modelMapper.map(user, UserResponse.class);
 
@@ -159,10 +164,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
 
+        System.out.println("Forgot Password API called");
+
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
         String otp = otpService.generateOtp();
+
+        System.out.println("Generated OTP = " + otp);
 
         redisTemplate.opsForValue().set(
                 "reset-otp:" + user.getEmail(),
@@ -170,9 +179,14 @@ public class AuthServiceImpl implements AuthService {
                 Duration.ofMinutes(10)
         );
 
-        emailService.sendOtpByEmail(user.getEmail(), otp);
+        System.out.println("OTP saved");
 
-        logger.info("Password reset OTP sent to {}", user.getEmail());
+        String value = redisTemplate.opsForValue()
+                .get("reset-otp:" + user.getEmail());
+
+        System.out.println("Redis value = " + value);
+
+        emailService.sendOtpByEmail(user.getEmail(), otp);
     }
 
     @Override

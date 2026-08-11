@@ -15,6 +15,7 @@ import com.LabResourceUtilizationPlatform.Service.EquipmentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +40,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     private final EquipmentRepository equipmentRepository;
     private final LabRepository labRepository;
     private final ModelMapper modelMapper;
+
     private final BookingRepository bookingRepository;
 
     private static final Logger logger =
@@ -103,7 +106,23 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .quantity(request.getQuantity())
                 .status(request.getStatus())
                 .lab(lab)
+                .active(true)
                 .build();
+
+        equipment.setServiceIntervalDays(request.getServiceIntervalDays());
+
+        LocalDate lastServiceDate =
+                request.getLastServiceDate() != null
+                        ? request.getLastServiceDate()
+                        : LocalDate.now();
+
+        equipment.setLastServiceDate(lastServiceDate);
+
+        equipment.setNextServiceDate(
+                lastServiceDate.plusDays(
+                        request.getServiceIntervalDays()
+                )
+        );
 
         Equipment savedEquipment = equipmentRepository.save(equipment);
 
@@ -117,7 +136,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     public Map<String, Long> getEquipmentStatusCounts(String institutionCode) {
 
         List<Equipment> equipments =
-                equipmentRepository.findByLab_Institution_Code(institutionCode);
+                equipmentRepository.findByLab_Institution_CodeAndActiveTrue(institutionCode);
 
         Map<String, Long> counts = new HashMap<>();
 
@@ -152,7 +171,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public EquipmentDetailResponse getEquipmentDetail(String equipmentCode, String labCode, String institutionCode) {
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         equipmentCode,
                         labCode,
                         institutionCode)
@@ -167,7 +186,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                              EquipmentStatus status) {
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCode(equipmentCode)
+                .findByEquipmentCodeAndActiveTrue(equipmentCode)
                 .orElseThrow(() ->
                         new RuntimeException("Equipment not found."));
 
@@ -180,7 +199,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 //    @Cacheable(value = "equipment", key = "#institutionCode + ':' + #labCode + ':' + #equipmentCode")
     public EquipmentResponse getEquipmentByCode(String equipmentCode, String labCode, String institutionCode) {
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         equipmentCode,
                         labCode,
                         institutionCode)
@@ -192,7 +211,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public List<EquipmentResponse> getAllEquipment(String labCode, String institutionCode) {
         return equipmentRepository
-                .findByLab_LabCodeAndLab_Institution_Code(
+                .findByLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         labCode,
                         institutionCode)
                 .stream()
@@ -206,7 +225,7 @@ public class EquipmentServiceImpl implements EquipmentService {
             String departmentName) {
 
         List<Equipment> equipments =
-                equipmentRepository.findByLab_Department_NameAndLab_Department_Institution_Code(
+                equipmentRepository.findByLab_Department_NameAndLab_Department_Institution_CodeAndActiveTrue(
                         departmentName,
                         institutionCode);
 
@@ -260,6 +279,20 @@ public class EquipmentServiceImpl implements EquipmentService {
         equipment.setHourlyRate(request.getHourlyRate());
         equipment.setQuantity(request.getQuantity());
         equipment.setStatus(request.getStatus());
+        equipment.setServiceIntervalDays(request.getServiceIntervalDays());
+
+        LocalDate lastServiceDate =
+                request.getLastServiceDate() != null
+                        ? request.getLastServiceDate()
+                        : equipment.getLastServiceDate();
+
+        equipment.setLastServiceDate(lastServiceDate);
+
+        equipment.setNextServiceDate(
+                lastServiceDate.plusDays(
+                        request.getServiceIntervalDays()
+                )
+        );
 
         Equipment updatedEquipment = equipmentRepository.save(equipment);
         logger.info("Equipment updated: {}", updatedEquipment.getEquipmentCode());
@@ -271,14 +304,37 @@ public class EquipmentServiceImpl implements EquipmentService {
     public void deleteEquipment(String equipmentCode, String labCode, String institutionCode) {
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         equipmentCode,
                         labCode,
                         institutionCode)
                 .orElseThrow(() -> new RuntimeException("Equipment not found."));
 
-        equipmentRepository.delete(equipment);
-        logger.info("Equipment deleted: {}", equipment.getEquipmentCode());
+        if (bookingRepository.existsByEquipmentIdAndStatusIn(
+                equipment.getId(),
+                List.of(
+                        BookingStatus.PENDING,
+                        BookingStatus.CONFIRMED
+                ))) {
+
+            throw new RuntimeException(
+                    "Cannot delete equipment because it has active bookings."
+            );
+        }
+        equipment.setActive(false);
+
+        logger.info(
+                "Before save -> id={}, active={}",
+                equipment.getId(),
+                equipment.getActive()
+        );
+
+        equipmentRepository.save(equipment);
+
+        logger.info(
+                "Equipment deactivated: {}",
+                equipment.getEquipmentCode()
+        );
     }
 
     private EquipmentResponse mapToResponse(Equipment equipment) {
@@ -308,6 +364,17 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .lab(equipment.getLab().getLabName())
                 .department(equipment.getLab().getDepartment().getName())
                 .institution(equipment.getLab().getInstitution().getName())
+                .serviceIntervalDays(equipment.getServiceIntervalDays())
+                .lastServiceDate(equipment.getLastServiceDate())
+                .nextServiceDate(equipment.getNextServiceDate())
+                .serviceDueInDays(
+                        equipment.getNextServiceDate() == null
+                                ? null
+                                : ChronoUnit.DAYS.between(
+                                LocalDate.now(),
+                                equipment.getNextServiceDate()
+                        )
+                )
                 .build();
 
     }
@@ -340,6 +407,17 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .lab(equipment.getLab().getLabName())
                 .department(equipment.getLab().getDepartment().getName())
                 .institution(equipment.getLab().getInstitution().getName())
+                .serviceIntervalDays(equipment.getServiceIntervalDays())
+                .lastServiceDate(equipment.getLastServiceDate())
+                .nextServiceDate(equipment.getNextServiceDate())
+                .serviceDueInDays(
+                        equipment.getNextServiceDate() == null
+                                ? null
+                                : ChronoUnit.DAYS.between(
+                                LocalDate.now(),
+                                equipment.getNextServiceDate()
+                        )
+                )
                 .build();
     }
 }

@@ -12,6 +12,29 @@ export const useEquipment = (institutionCode, labCode) => {
   );
 };
 
+export const useEquipmentDetail = (
+  institutionCode,
+  labCode,
+  equipmentCode
+) => {
+  return useQuery(
+    ["equipment-detail", institutionCode, labCode, equipmentCode],
+    () =>
+      equipmentService.getDetails(
+        institutionCode,
+        labCode,
+        equipmentCode
+      ),
+    {
+      enabled:
+        !!institutionCode &&
+        !!labCode &&
+        !!equipmentCode,
+    }
+  );
+};
+
+
 export const useEquipmentByCode = (
   institutionCode,
   labCode,
@@ -97,7 +120,14 @@ export const useDeleteEquipment = () => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["equipment"]);
-        toast.success("Equipment deleted successfully");
+        toast.success("Equipment deactivated successfully.");
+      },
+
+      onError: (error) => {
+        toast.error(
+          error.response?.data?.message ||
+          "Failed to delete equipment."
+        );
       },
     }
   );

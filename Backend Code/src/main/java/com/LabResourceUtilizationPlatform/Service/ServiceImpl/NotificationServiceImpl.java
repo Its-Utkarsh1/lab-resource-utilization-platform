@@ -5,9 +5,12 @@ import com.LabResourceUtilizationPlatform.Entity.Enum.NotificationType;
 import com.LabResourceUtilizationPlatform.Entity.Notification;
 import com.LabResourceUtilizationPlatform.Entity.User;
 import com.LabResourceUtilizationPlatform.Repository.NotificationRepository;
+import com.LabResourceUtilizationPlatform.Repository.UserRepository;
 import com.LabResourceUtilizationPlatform.Service.NotificationService;
-import com.LabResourceUtilizationPlatform.Service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,94 +21,93 @@ import java.util.List;
 @Transactional
 public class NotificationServiceImpl implements NotificationService {
 
-    private final UserService userService;
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
 
     @Override
-    public void notifyUser(
-            User user,
-            String title,
-            String message,
-            NotificationType type) {
+    public void createNotification(Long userId,
+                                   NotificationType type,
+                                   String title,
+                                   String message) {
 
-        Notification notification = Notification.builder()
-                .user(user)
-                .title(title)
-                .message(message)
-                .type(type)
-                .isRead(false)
-                .build();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setType(type);
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setRead(false);
 
         notificationRepository.save(notification);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<NotificationDTO> getMyNotifications() {
 
-        User user = userService.getCurrentUser();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        return notificationRepository
-                .findByUserIdOrderByCreatedAtDesc(user.getId())
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return notificationRepository.findByUserOrderByCreatedAtDesc(user)
                 .stream()
-                .map(this::map)
+                .map(notification -> modelMapper.map(notification, NotificationDTO.class))
                 .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<NotificationDTO> getUnreadNotifications() {
 
-        User user = userService.getCurrentUser();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        return notificationRepository
-                .findByUserIdAndIsReadFalseOrderByCreatedAtDesc(user.getId())
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return notificationRepository.findByUserAndReadFalseOrderByCreatedAtDesc(user)
                 .stream()
-                .map(this::map)
+                .map(notification -> modelMapper.map(notification, NotificationDTO.class))
                 .toList();
     }
 
     @Override
-    public void markRead(Long id) {
+    public long unreadCount() {
 
-        Notification notification = notificationRepository
-                .findById(id)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return notificationRepository.countByUserAndReadFalse(user);
+    }
+
+    @Override
+    public void markRead(Long notificationId) {
+
+        Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
 
-        notification.setIsRead(true);
-
+        notification.setRead(true);
         notificationRepository.save(notification);
     }
 
     @Override
     public void markAllRead() {
 
-        User user = userService.getCurrentUser();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Notification> notifications =
-                notificationRepository
-                        .findByUserIdAndIsReadFalseOrderByCreatedAtDesc(user.getId());
+                notificationRepository.findByUserAndReadFalseOrderByCreatedAtDesc(user);
 
-        notifications.forEach(notification -> notification.setIsRead(true));
+        notifications.forEach(notification -> notification.setRead(true));
 
         notificationRepository.saveAll(notifications);
-    }
-
-    @Override
-    public long unreadCount() {
-
-        User user = userService.getCurrentUser();
-
-        return notificationRepository.countByUserIdAndIsReadFalse(user.getId());
-    }
-
-    private NotificationDTO map(Notification notification) {
-
-        return NotificationDTO.builder()
-                .id(notification.getId())
-                .title(notification.getTitle())
-                .message(notification.getMessage())
-                .type(notification.getType())
-                .isRead(notification.getIsRead())
-                .createdAt(notification.getCreatedAt())
-                .build();
     }
 }

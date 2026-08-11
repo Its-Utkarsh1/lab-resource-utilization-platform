@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useMyWaitingQueue } from "../hooks/useWaitingQueue";
 import {
   useStudentDashboard,
 } from "../hooks/useDashboard";
@@ -8,6 +9,8 @@ import {
   useMyBookings,
   useCancelBooking,
 } from "../hooks/useBookings";
+
+
 
 const StudentDashboard = () => {
 
@@ -31,13 +34,18 @@ const StudentDashboard = () => {
     isLoading: bookingsLoading,
   } = useMyBookings();
 
+  const {
+    data: waitingQueue = [],
+    isLoading: waitingQueueLoading,
+  } = useMyWaitingQueue();
+
   const activeBookings = myBookings.filter(
     (booking) =>
       booking.status === "PENDING" ||
       booking.status === "APPROVED"
   );
 
-  if (dashboardLoading || bookingsLoading) {
+  if (dashboardLoading || bookingsLoading || waitingQueueLoading) {
     return (
       <div className="flex justify-center items-center h-screen text-xl">
         Loading...
@@ -133,7 +141,9 @@ const StudentDashboard = () => {
                         </button>
                       )}
                   </div>
+
                 ))}
+
               </div>
             ) : (
               <div className="text-center py-12">
@@ -146,6 +156,44 @@ const StudentDashboard = () => {
                   Browse Labs
                 </Link>
               </div>
+            )}
+
+          </div>
+          <div className="bg-white rounded-xl shadow border p-6 mt-6">
+
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">My Waiting Queue</h2>
+            </div>
+
+            {waitingQueue.length > 0 ? (
+              <div className="space-y-4">
+                {waitingQueue.map((queue) => (
+                  <div
+                    key={queue.id}
+                    className="border rounded-xl p-4"
+                  >
+                    <h3 className="font-semibold">
+                      {queue.equipmentName}
+                    </h3>
+
+                    <p className="text-sm text-gray-500">
+                      Equipment Code: {queue.equipmentCode}
+                    </p>
+
+                    <p className="text-sm text-gray-500">
+                      Position: {queue.position}
+                    </p>
+
+                    <span className="inline-block mt-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-sm">
+                      {queue.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">
+                You are not in any waiting queue.
+              </p>
             )}
 
           </div>

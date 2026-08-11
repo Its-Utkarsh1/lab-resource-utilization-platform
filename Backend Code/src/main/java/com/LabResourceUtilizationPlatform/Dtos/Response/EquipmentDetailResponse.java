@@ -27,4 +27,8 @@ public class EquipmentDetailResponse {
         private String department;
         private String institution;
         private Integer availableQuantity;
+        private Integer serviceIntervalDays;
+        private LocalDate lastServiceDate;
+        private LocalDate nextServiceDate;
+        private Long serviceDueInDays;
 }

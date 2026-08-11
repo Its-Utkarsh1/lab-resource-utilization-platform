@@ -1,18 +1,19 @@
 package com.LabResourceUtilizationPlatform.Repository;
 
 import com.LabResourceUtilizationPlatform.Entity.Notification;
+import com.LabResourceUtilizationPlatform.Entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
-public interface NotificationRepository
-        extends JpaRepository<Notification, Long> {
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Notification> findByUserOrderByCreatedAtDesc(User user);
 
-    List<Notification> findByUserIdAndIsReadFalseOrderByCreatedAtDesc(Long userId);
+    List<Notification> findByUserAndReadFalseOrderByCreatedAtDesc(User user);
 
-    long countByUserIdAndIsReadFalse(Long userId);
+    long countByUserAndReadFalse(User user);
 }

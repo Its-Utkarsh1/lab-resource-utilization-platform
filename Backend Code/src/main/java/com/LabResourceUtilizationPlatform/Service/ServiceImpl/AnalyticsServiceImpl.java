@@ -79,16 +79,18 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         Long institutionId = user.getInstitution().getId();
 
         Long totalEquipment =
-                equipmentRepository.countByLab_Institution_Id(institutionId);
+                equipmentRepository.countByLab_Institution_IdAndActiveTrue(
+                        institutionId
+                );
 
         Long availableEquipment =
-                equipmentRepository.countByLab_Institution_IdAndStatus(
+                equipmentRepository.countByLab_Institution_IdAndStatusAndActiveTrue(
                         institutionId,
                         EquipmentStatus.AVAILABLE
                 );
 
         Long maintenanceEquipment =
-                equipmentRepository.countByLab_Institution_IdAndStatus(
+                equipmentRepository.countByLab_Institution_IdAndStatusAndActiveTrue(
                         institutionId,
                         EquipmentStatus.UNDER_MAINTENANCE
                 );
@@ -176,16 +178,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         Long labId = lab.getId();
 
-        Long totalEquipment = equipmentRepository.countByLabId(labId);
+        Long totalEquipment =
+                equipmentRepository.countByLabIdAndActiveTrue(labId);
 
         Long availableEquipment =
-                equipmentRepository.countByLabIdAndStatus(
+                equipmentRepository.countByLabIdAndStatusAndActiveTrue(
                         labId,
                         EquipmentStatus.AVAILABLE
                 );
 
         Long maintenanceEquipment =
-                equipmentRepository.countByLabIdAndStatus(
+                equipmentRepository.countByLabIdAndStatusAndActiveTrue(
                         labId,
                         EquipmentStatus.UNDER_MAINTENANCE
                 );

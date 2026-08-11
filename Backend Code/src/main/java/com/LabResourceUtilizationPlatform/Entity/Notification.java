@@ -3,38 +3,44 @@ package com.LabResourceUtilizationPlatform.Entity;
 import com.LabResourceUtilizationPlatform.Entity.Enum.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Builder
 @Entity
 @Table(name = "notifications")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
-
-    @Column(length = 1000)
-    private String message;
-
-    @Enumerated(EnumType.STRING)
-    private NotificationType type;
-
-    @Builder.Default
-    private Boolean isRead = false;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @CreationTimestamp
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NotificationType type;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false, length = 1000)
+    private String message;
+
+    @Column(name = "is_read", nullable = false)
+    private Boolean read = false;
+
+    @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+    }
 }

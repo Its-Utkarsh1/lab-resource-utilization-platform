@@ -4,6 +4,7 @@ package com.LabResourceUtilizationPlatform.Dtos.Response;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -25,4 +26,8 @@ public class EquipmentResponse {
     private String department;
     private String institution;
     private Integer availableQuantity;
+    private Integer serviceIntervalDays;
+    private LocalDate lastServiceDate;
+    private LocalDate nextServiceDate;
+    private Long serviceDueInDays;
 }

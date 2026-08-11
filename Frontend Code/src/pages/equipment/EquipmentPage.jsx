@@ -137,51 +137,70 @@ const EquipmentPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEquipment.map((item) => (
-            <div
-              key={item.equipmentCode}
-              className="card p-6 hover:border-green-200 transition-all group"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl group-hover:bg-green-50 transition-colors">
-                  {"🧪"}
+          {filteredEquipment.map((item) => {
+
+            console.log("Equipment:", item);
+            console.log("Image URL:", item.imageUrl);
+
+            return (
+              <div
+                key={item.equipmentCode}
+                className="card p-6 hover:border-green-200 transition-all group"
+              >
+                <div className="mb-5">
+
+                  <div className="flex justify-end mb-3">
+                    <StatusBadge status={item.status} />
+                  </div>
+
+                  <div className="w-full h-64 bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center">
+
+                    <img
+                      src={`http://localhost:8080${item.imageUrl}`}
+                      alt={item.equipmentName}
+                      className="max-w-full max-h-full object-contain p-3"
+                      onError={(e) => {
+                        console.log("Failed Image:", e.target.src);
+                      }}
+                    />
+
+                  </div>
+
                 </div>
 
-                <StatusBadge status={item.status} />
-              </div>
+                <h3 className="font-bold text-slate-900 mb-1">
+                  {item.equipmentName}
+                </h3>
 
-              <h3 className="font-bold text-slate-900 mb-1">
-                {item.equipmentName}
-              </h3>
+                <p className="text-sm text-slate-500 mb-3">
+                  {item.description || "No description available"}
+                </p>
 
-              <p className="text-sm text-slate-500 mb-3">
-                {item.description || "No description available"}
-              </p>
+                <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+                  <span>📍 {item.lab}</span>
+                  <span>🏛️ {item.department}</span>
+                </div>
 
-              <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
-                <span>📍 {item.lab}</span>
-                <span>🏛️ {item.department}</span>
-              </div>
+                <div className="flex items-center gap-2">
+                  {item.status === "AVAILABLE" && (
+                    <Link
+                      to={`/bookings/new?equipment=${item.equipmentCode}&lab=${item.labCode}`}
+                      className="flex-1 text-center py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600"
+                    >
+                      Book Now
+                    </Link>
+                  )}
 
-              <div className="flex items-center gap-2">
-                {item.status === "AVAILABLE" && (
                   <Link
-                    to={`/bookings/new?equipment=${item.equipmentCode}&lab=${item.labCode}`}
-                    className="flex-1 text-center py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600"
+                    to={`/equipment/details/${item.equipmentCode}?lab=${item.labCode}`}
+                    className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:border-green-300 hover:text-green-600"
                   >
-                    Book Now
+                    Details
                   </Link>
-                )}
-
-                <Link
-                  to={`/equipment/details/${item.equipmentCode}?lab=${item.labCode}`}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:border-green-300 hover:text-green-600"
-                >
-                  Details
-                </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </DashboardLayout>

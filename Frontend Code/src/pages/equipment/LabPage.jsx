@@ -9,19 +9,24 @@ import { useLabsByDepartment } from "../../hooks/useLab";
 const LabPage = () => {
   const { user } = useAuth();
 
-  console.log(user);
+  const role =
+    user?.role?.roleName ||
+    user?.roleName ||
+    user?.role;
 
-const {
-  data: labs = [],
-  isLoading,
-  error,
-} = useLabsByDepartment(
-  user?.institutionCode,
-  user?.departmentName
-);
+  const canCreateLab = [
+    "SYSTEM_ADMIN",
+    "INSTITUTION_ADMIN",
+  ].includes(role);
 
-console.log(labs);
-console.log(error);
+  const {
+    data: labs = [],
+    isLoading,
+    error,
+  } = useLabsByDepartment(
+    user?.institutionCode,
+    user?.departmentName
+  );
 
   if (isLoading) {
     return (
@@ -34,7 +39,7 @@ console.log(error);
   if (error) {
     return (
       <DashboardLayout>
-        <div className="text-red-500">
+        <div className="text-red-500 text-center mt-10">
           Failed to load labs.
         </div>
       </DashboardLayout>
@@ -44,6 +49,29 @@ console.log(error);
   if (labs.length === 0) {
     return (
       <DashboardLayout>
+        <div className="flex justify-between items-center mb-8">
+
+          <div>
+            <h1 className="text-3xl font-bold">
+              Laboratories
+            </h1>
+
+            <p className="text-slate-600">
+              {user?.departmentName}
+            </p>
+          </div>
+
+          {canCreateLab && (
+            <Link
+              to="/labs/create"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-medium transition"
+            >
+              + Add Lab
+            </Link>
+          )}
+
+        </div>
+
         <EmptyState
           icon="🧪"
           title="No Labs Found"
@@ -56,14 +84,27 @@ console.log(error);
   return (
     <DashboardLayout>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">
-          Laboratories
-        </h1>
+      <div className="flex justify-between items-center mb-8">
 
-        <p className="text-slate-600">
-          {user?.departmentName}
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold">
+            Laboratories
+          </h1>
+
+          <p className="text-slate-600">
+            {user?.departmentName}
+          </p>
+        </div>
+
+        {canCreateLab && (
+          <Link
+            to="/labs/create"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-medium shadow transition"
+          >
+            + Add Lab
+          </Link>
+        )}
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -73,7 +114,7 @@ console.log(error);
           <Link
             key={lab.labCode}
             to={`/equipment/${lab.labCode}`}
-            className="bg-white rounded-xl shadow border p-6 hover:border-green-500 transition"
+            className="bg-white rounded-xl shadow border p-6 hover:border-green-500 hover:shadow-lg transition"
           >
             <div className="text-5xl mb-4">
               🧪

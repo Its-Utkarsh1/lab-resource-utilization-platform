@@ -1,6 +1,8 @@
 package com.LabResourceUtilizationPlatform.Controller;
 
 import com.LabResourceUtilizationPlatform.Dtos.Request.CreateSharingRequest;
+import com.LabResourceUtilizationPlatform.Dtos.Response.DepartmentResponse;
+import com.LabResourceUtilizationPlatform.Dtos.Response.InstitutionResponse;
 import com.LabResourceUtilizationPlatform.Dtos.Response.SharingResponse;
 import com.LabResourceUtilizationPlatform.Service.EquipmentSharingService;
 import jakarta.validation.Valid;
@@ -31,13 +33,60 @@ public class EquipmentSharingController {
     }
 
     /**
-     * Equipment available for sharing
+     * Available institutions (except logged-in institution)
      */
-    @GetMapping("/available")
-    public ResponseEntity<List<SharingResponse>> getAvailableEquipment() {
+    @GetMapping("/institutions")
+    public ResponseEntity<List<InstitutionResponse>> getAvailableInstitutions() {
 
         return ResponseEntity.ok(
-                equipmentSharingService.getAvailableEquipment()
+                equipmentSharingService.getAvailableInstitutions()
+        );
+    }
+
+    /**
+     * Dashboard - All available equipment except logged-in institution
+     */
+    @GetMapping("/dashboard/available")
+    public ResponseEntity<List<SharingResponse>> getDashboardAvailableEquipment() {
+
+        return ResponseEntity.ok(
+                equipmentSharingService.getDashboardAvailableEquipment()
+        );
+    }
+
+    /**
+     * Available equipment by institution & department
+     */
+    @GetMapping("/available")
+    public ResponseEntity<List<SharingResponse>> getAvailableEquipment(
+            @RequestParam String institutionCode,
+            @RequestParam String departmentName) {
+
+        System.out.println("institutionCode = " + institutionCode);
+        System.out.println("departmentName = " + departmentName);
+
+        try {
+            return ResponseEntity.ok(
+                    equipmentSharingService.getAvailableEquipment(
+                            institutionCode,
+                            departmentName
+                    )
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    /**
+     * Departments of selected institution
+     */
+    @GetMapping("/departments")
+    public ResponseEntity<List<DepartmentResponse>> getDepartments(
+            @RequestParam String institutionCode) {
+
+        return ResponseEntity.ok(
+                equipmentSharingService.getDepartments(institutionCode)
         );
     }
 

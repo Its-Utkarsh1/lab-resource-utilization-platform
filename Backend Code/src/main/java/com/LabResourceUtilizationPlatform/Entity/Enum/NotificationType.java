@@ -2,10 +2,18 @@ package com.LabResourceUtilizationPlatform.Entity.Enum;
 
 public enum NotificationType {
 
-    BOOKING,
+    BOOKING_CONFIRMATION,
+    BOOKING_REMINDER,
+    EQUIPMENT_AVAILABLE,
+    EQUIPMENT_SHARING,
     WAITING_QUEUE,
     MAINTENANCE,
-    SHARING,
-    GENERAL
-
+    MAINTENANCE_DUE,
+    CALIBRATION_EXPIRY,
+    IDLE_EQUIPMENT,
+    SHARING_REQUEST,
+    SHARING_APPROVED,
+    EMAIL,
+    SMS,
+    PUSH
 }

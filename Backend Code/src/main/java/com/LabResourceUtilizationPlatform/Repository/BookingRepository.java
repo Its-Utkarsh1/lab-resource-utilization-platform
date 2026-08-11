@@ -24,10 +24,11 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByBookingCode(String bookingCode);
-
-    boolean existsByBookingCode(String bookingCode);
-
-    List<Booking> findByUser(User user);
+    boolean existsByEquipmentIdAndStatusIn(
+            Long equipmentId,
+            List<BookingStatus> statuses
+    );
+    List<Booking> findByUserOrderByCreatedAtDesc(User user);
 
     List<Booking> findByStartTimeBetween(
             LocalDateTime start,
@@ -305,4 +306,5 @@ ORDER BY COUNT(b) DESC
     );
 
     List<Booking> findByStatus(BookingStatus bookingStatus);
-}
+
+    }

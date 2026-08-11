@@ -12,7 +12,6 @@ import com.LabResourceUtilizationPlatform.Repository.UserRepository;
 import com.LabResourceUtilizationPlatform.Service.MaintenanceService;
 import com.LabResourceUtilizationPlatform.Service.NotificationService;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -42,7 +41,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                         new RuntimeException("Manager not found."));
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabManager_Id(
+                .findByEquipmentCodeAndLab_LabManager_IdAndActiveTrue(
                         request.getEquipmentCode(),
                         manager.getId()
                 )
@@ -78,24 +77,16 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         maintenance = maintenanceRepository.save(maintenance);
 
-        notificationService.notifyUser(
-                technician,
-                "Maintenance Assigned",
-                "You have been assigned maintenance for equipment: "
-                        + equipment.getEquipmentName(),
-                NotificationType.MAINTENANCE
-        );
-
-        notificationService.notifyUser(
-                manager,
-                "Maintenance Scheduled",
-                "Maintenance has been scheduled for equipment: "
-                        + equipment.getEquipmentName(),
-                NotificationType.MAINTENANCE
-        );
-
         equipment.setStatus(EquipmentStatus.UNDER_MAINTENANCE);
         equipmentRepository.save(equipment);
+
+        notificationService.createNotification(
+                technician.getId(),
+                NotificationType.MAINTENANCE,
+                "Maintenance Assigned",
+                "You have been assigned maintenance for equipment "
+                        + equipment.getEquipmentName() + "."
+        );
 
         return mapToResponse(maintenance);
     }
@@ -133,7 +124,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                         new RuntimeException("Maintenance not found."));
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCode(request.getEquipmentCode())
+                .findByEquipmentCodeAndActiveTrue(request.getEquipmentCode())
                 .orElseThrow(() ->
                         new RuntimeException("Equipment not found."));
 
@@ -150,14 +141,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         maintenance.setDescription(request.getDescription());
 
         maintenance = maintenanceRepository.save(maintenance);
-
-        notificationService.notifyUser(
-                technician,
-                "Maintenance Updated",
-                "Your maintenance assignment has been updated for equipment: "
-                        + equipment.getEquipmentName(),
-                NotificationType.MAINTENANCE
-        );
 
         return mapToResponse(maintenance);
     }
@@ -188,12 +171,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         maintenanceRepository.save(maintenance);
 
-        notificationService.notifyUser(
-                maintenance.getTechnician(),
+        notificationService.createNotification(
+                maintenance.getTechnician().getId(),
+                NotificationType.MAINTENANCE,
                 "Maintenance Started",
-                "Maintenance has started for equipment: "
-                        + maintenance.getEquipment().getEquipmentName(),
-                NotificationType.MAINTENANCE
+                "Maintenance for "
+                        + maintenance.getEquipment().getEquipmentName()
+                        + " has started."
         );
 
         return "Maintenance started successfully.";
@@ -215,21 +199,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         equipmentRepository.save(equipment);
         maintenanceRepository.save(maintenance);
 
-        notificationService.notifyUser(
-                maintenance.getTechnician(),
+        notificationService.createNotification(
+                maintenance.getTechnician().getId(),
+                NotificationType.MAINTENANCE,
                 "Maintenance Completed",
-                "Maintenance completed successfully for equipment: "
-                        + maintenance.getEquipment().getEquipmentName(),
-                NotificationType.MAINTENANCE
-        );
-
-        notificationService.notifyUser(
-                maintenance.getEquipment().getLab().getLabManager(),
-                "Equipment Available",
-                "Maintenance has been completed. Equipment "
+                "Maintenance for "
                         + maintenance.getEquipment().getEquipmentName()
-                        + " is now available.",
-                NotificationType.MAINTENANCE
+                        + " has been completed."
         );
 
         return "Maintenance completed successfully.";

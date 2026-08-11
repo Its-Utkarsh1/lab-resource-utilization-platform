@@ -8,6 +8,8 @@ import com.LabResourceUtilizationPlatform.Entity.Enum.BookingStatus;
 import com.LabResourceUtilizationPlatform.Entity.Enum.NotificationType;
 import com.LabResourceUtilizationPlatform.Entity.Equipment;
 import com.LabResourceUtilizationPlatform.Entity.User;
+import com.LabResourceUtilizationPlatform.Kafka.event.BookingCreatedEvent;
+import com.LabResourceUtilizationPlatform.Kafka.producer.BookingProducer;
 import com.LabResourceUtilizationPlatform.Repository.*;
 import com.LabResourceUtilizationPlatform.Service.BookingService;
 import com.LabResourceUtilizationPlatform.Service.EquipmentServiceCostService;
@@ -17,7 +19,6 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
-import org.modelmapper.ModelMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,11 +38,11 @@ import java.util.List;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
-    private final NotificationService notificationService;
+    private final BookingProducer bookingProducer;
     private final UserRepository userRepository;
     private final EquipmentRepository equipmentRepository;
-    private final ModelMapper modelMapper;
     private final WaitingQueueService waitingQueueService;
+    private final NotificationService notificationService;
     private final EquipmentServiceCostRepository equipmentServiceCostRepository;
     private final EquipmentServiceCostService equipmentServiceCostService;
 
@@ -58,7 +59,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         request.getEquipmentCode(),
                         request.getLabCode(),
                         request.getInstitutionCode()
@@ -128,12 +129,17 @@ public class BookingServiceImpl implements BookingService {
 
         booking = bookingRepository.save(booking);
 
-        notificationService.notifyUser(
-                user,
+
+        BookingCreatedEvent event = new BookingCreatedEvent(
+                booking.getId(),
+                booking.getUser().getId(),
+                booking.getEquipment().getEquipmentCode(),
                 "Booking Created",
-                "Your booking " + booking.getBookingCode() + " has been created successfully.",
-                NotificationType.BOOKING
+                "Your booking has been confirmed successfully.",
+                NotificationType.BOOKING_CONFIRMATION
         );
+
+        bookingProducer.publish(event);
 
         // Calculate and save service cost
         equipmentServiceCostService.calculateCost(booking.getId());
@@ -154,12 +160,23 @@ public class BookingServiceImpl implements BookingService {
 
         bookingRepository.save(booking);
 
-        notificationService.notifyUser(
-                booking.getUser(),
+        notificationService.createNotification(
+                booking.getUser().getId(),
+                NotificationType.BOOKING_CONFIRMATION,
                 "Booking Approved",
-                "Your booking " + booking.getBookingCode() + " has been approved.",
-                NotificationType.BOOKING
+                "Your booking has been approved by the Lab Manager."
         );
+
+        BookingCreatedEvent event = new BookingCreatedEvent(
+                booking.getId(),
+                booking.getUser().getId(),
+                booking.getEquipment().getEquipmentCode(),
+                "Booking Approved",
+                "Your booking has been approved.",
+                NotificationType.BOOKING_CONFIRMATION
+        );
+
+        bookingProducer.publish(event);
 
         return "Booking approved successfully.";
     }
@@ -197,7 +214,7 @@ public class BookingServiceImpl implements BookingService {
             LocalDateTime endTime) {
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         equipmentCode,
                         labCode,
                         institutionCode
@@ -253,7 +270,7 @@ public class BookingServiceImpl implements BookingService {
 
         System.out.println("User ID = " + user.getId());
 
-        List<Booking> bookings = bookingRepository.findByUser(user);
+        List<Booking> bookings = bookingRepository.findByUserOrderByCreatedAtDesc(user);
 
         System.out.println("Bookings = " + bookings.size());
 
@@ -300,7 +317,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         Equipment equipment = equipmentRepository
-                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_Code(
+                .findByEquipmentCodeAndLab_LabCodeAndLab_Institution_CodeAndActiveTrue(
                         request.getEquipmentCode(),
                         request.getLabCode(),
                         request.getInstitutionCode())
@@ -420,15 +437,24 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-        notificationService.notifyUser(
-                booking.getUser(),
+
+        notificationService.createNotification(
+                booking.getUser().getId(),
+                NotificationType.BOOKING_CONFIRMATION,
                 "Booking Cancelled",
-                "Your booking " + booking.getBookingCode() + " has been cancelled.",
-                NotificationType.BOOKING
+                "Your booking has been cancelled successfully."
         );
-        waitingQueueService.allocateNextWaitingUser(
-                booking.getEquipment().getId()
+
+        BookingCreatedEvent event = new BookingCreatedEvent(
+                booking.getId(),
+                booking.getUser().getId(),
+                booking.getEquipment().getEquipmentCode(),
+                "Booking Cancelled",
+                "Your booking has been cancelled successfully.",
+                NotificationType.BOOKING_CONFIRMATION
         );
+
+        bookingProducer.publish(event);
     }
 
     @Override
@@ -445,12 +471,24 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.COMPLETED);
 
         bookingRepository.save(booking);
-        notificationService.notifyUser(
-                booking.getUser(),
+
+        notificationService.createNotification(
+                booking.getUser().getId(),
+                NotificationType.BOOKING_CONFIRMATION,
                 "Booking Completed",
-                "Your booking " + booking.getBookingCode() + " has been completed.",
-                NotificationType.BOOKING
+                "Your booking has been completed successfully."
         );
+
+        BookingCreatedEvent event = new BookingCreatedEvent(
+                booking.getId(),
+                booking.getUser().getId(),
+                booking.getEquipment().getEquipmentCode(),
+                "Booking Completed",
+                "Your booking has been completed.",
+                NotificationType.BOOKING_CONFIRMATION
+        );
+
+        bookingProducer.publish(event);
 
         waitingQueueService.allocateNextWaitingUser(
                 booking.getEquipment().getId()
@@ -502,6 +540,9 @@ public class BookingServiceImpl implements BookingService {
         response.setQuantity(booking.getQuantity());
         response.setStatus(booking.getStatus());
         response.setCreatedAt(booking.getCreatedAt());
+        response.setEquipmentImage(
+                booking.getEquipment().getImageUrl()
+        );
 
         equipmentServiceCostRepository
                 .findByBookingId(booking.getId())

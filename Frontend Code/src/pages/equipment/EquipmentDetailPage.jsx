@@ -1,16 +1,24 @@
 import { useAuth } from "../../context/AuthContext";
 import {
-  useEquipmentByCode,
+  useEquipmentDetail,
   useUpdateEquipmentStatus,
+  useDeleteEquipment,
 } from "../../hooks/useEquipment";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import EmptyState from "../../components/common/EmptyState";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useParams,
+  useSearchParams,
+  useNavigate,
+} from "react-router-dom";
 
 const EquipmentDetailPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const deleteMutation = useDeleteEquipment();
 
   const { equipmentCode } = useParams();
   const [searchParams] = useSearchParams();
@@ -19,15 +27,38 @@ const EquipmentDetailPage = () => {
   const updateStatusMutation = useUpdateEquipmentStatus();
 
   const {
-    data: equipment,
-    isLoading,
-    error,
-    refetch,
-  } = useEquipmentByCode(
-    user?.institutionCode,
-    labCode,
-    equipmentCode
-  );
+  data: equipment,
+  isLoading,
+  error,
+  refetch,
+} = useEquipmentDetail(
+  user?.institutionCode,
+  labCode,
+  equipmentCode
+);
+
+  const handleDelete = () => {
+    if (
+      !window.confirm(
+        "Deactivate this equipment? It will no longer appear in the inventory or be available for booking."
+      )
+    ) {
+      return;
+    }
+
+    deleteMutation.mutate(
+      {
+        institutionCode: user.institutionCode,
+        labCode,
+        equipmentCode,
+      },
+      {
+        onSuccess: () => {
+          navigate(`/equipment/${labCode}`);
+        },
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -120,6 +151,38 @@ const EquipmentDetailPage = () => {
               <strong>Institution:</strong> {equipment.institution}
             </div>
 
+            <div className="border rounded-lg p-4">
+              <strong>Service Interval:</strong>{" "}
+              {equipment.serviceIntervalDays} Days
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <strong>Last Service Date:</strong>{" "}
+              {equipment.lastServiceDate || "-"}
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <strong>Next Service Date:</strong>{" "}
+              {equipment.nextServiceDate || "-"}
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <strong>Service Due In:</strong>{" "}
+              <span
+                className={
+                  equipment.serviceDueInDays < 0
+                    ? "text-red-600 font-semibold"
+                    : equipment.serviceDueInDays <= 7
+                      ? "text-orange-600 font-semibold"
+                      : "text-green-600 font-semibold"
+                }
+              >
+                {equipment.serviceDueInDays != null
+                  ? `${equipment.serviceDueInDays} Days`
+                  : "-"}
+              </span>
+            </div>
+
           </div>
 
         </div>
@@ -196,7 +259,20 @@ const EquipmentDetailPage = () => {
                   ? "Updating..."
                   : "Mark Available"}
               </button>
+
+
             )}
+          {isLabManager && (
+            <button
+              onClick={handleDelete}
+              disabled={deleteMutation.isLoading}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg"
+            >
+              {deleteMutation.isLoading
+                ? "Deactivating..."
+                : "Deactivate Equipment"}
+            </button>
+          )}
 
         </div>
 

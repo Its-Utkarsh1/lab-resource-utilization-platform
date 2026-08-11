@@ -28,6 +28,8 @@ import IncomingRequestsPage from "./pages/sharing/IncomingRequestsPage";
 import OutgoingRequestsPage from "./pages/sharing/OutgoingRequestsPage";
 import SharingHistoryPage from "./pages/sharing/SharingHistoryPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
+import OAuthSuccess from "./pages/OAuthSuccess";
+import CreateLabPage from "./pages/equipment/CreateLabPage";
 
 
 function App() {
@@ -56,9 +58,29 @@ function App() {
         />
 
         <Route
+          path="/labs/create"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "SYSTEM_ADMIN",
+                "INSTITUTION_ADMIN",
+              ]}
+            >
+              <CreateLabPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/oauth-success"
+          element={<OAuthSuccess />}
+        />
+
+        <Route
           path="/notifications"
           element={<NotificationsPage />}
         />
+
 
         <Route
           path="/sharing"

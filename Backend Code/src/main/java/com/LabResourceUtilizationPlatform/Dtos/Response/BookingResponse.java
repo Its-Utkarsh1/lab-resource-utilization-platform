@@ -17,6 +17,7 @@ public class BookingResponse {
     private String equipmentName;
     private String institutionName;
     private String departmentName;
+    private String equipmentImage;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String purpose;

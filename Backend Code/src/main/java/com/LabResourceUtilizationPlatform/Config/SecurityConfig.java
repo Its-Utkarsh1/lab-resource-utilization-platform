@@ -2,6 +2,7 @@ package com.LabResourceUtilizationPlatform.Config;
 
 import com.LabResourceUtilizationPlatform.Security.AuthEntryPointJwt;
 import com.LabResourceUtilizationPlatform.Security.AuthTokenFilter;
+import com.LabResourceUtilizationPlatform.Security.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,15 +19,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
-
 
 @Configuration
 @EnableWebSecurity
@@ -36,159 +33,180 @@ public class SecurityConfig {
 
     private final AuthTokenFilter authTokenFilter;
     private final AuthEntryPointJwt authEntryPointJwt;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-   @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
-        httpSecurity
+    private static final String[] LAB_USERS = {
+            "SYSTEM_ADMIN",
+            "INSTITUTION_ADMIN",
+            "DEPARTMENT_HEAD",
+            "LAB_MANAGER",
+            "LAB_TECHNICIAN",
+            "PROFESSOR",
+            "ASSOCIATE_PROFESSOR",
+            "ASSISTANT_PROFESSOR",
+            "RESEARCHER",
+            "RESEARCH_ASSOCIATE",
+            "RESEARCH_SCIENTIST",
+            "STUDENT"
+    };
+
+    private static final String[] BOOKING_USERS = {
+            "SYSTEM_ADMIN",
+            "INSTITUTION_ADMIN",
+            "DEPARTMENT_HEAD",
+            "LAB_MANAGER",
+            "PROFESSOR",
+            "ASSOCIATE_PROFESSOR",
+            "ASSISTANT_PROFESSOR",
+            "RESEARCHER",
+            "RESEARCH_ASSOCIATE",
+            "RESEARCH_SCIENTIST",
+            "STUDENT"
+    };
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        http
                 .cors(Customizer.withDefaults())
-               .csrf(csrf -> csrf.disable())
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-                    /*.authorizeHttpRequests(auth -> auth
 
-                            .requestMatchers("/api/waiting-queue/my")
-                            .hasAnyRole(
-                                    "SYSTEM_ADMIN",
-                                    "INSTITUTION_ADMIN",
-                                    "LAB_MANAGER"
-                            )
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                            .requestMatchers("/api/waiting-queue/**")
-                            .hasAnyRole(
-                                    "SYSTEM_ADMIN",
-                                    "INSTITUTION_ADMIN",
-                                    "LAB_MANAGER"
-                            )
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(authEntryPointJwt))
 
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
 
-                        // Authentication
-                        .requestMatchers(
-                                "/api/auth/**"
-                        ).permitAll()
+//                .authorizeHttpRequests(auth -> auth
+//
+//                        // Public APIs
+//                        .requestMatchers(
+//                                "/api/auth/**",
+//                                "/oauth2/**",
+//                                "/login/**",
+//                                "/error",
+//                                "/uploads/**"
+//                        ).permitAll()
+//
+//                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+//
+//                        // System Admin
+//                        .requestMatchers("/api/system/**")
+//                        .hasRole("SYSTEM_ADMIN")
+//
+//                        // Institution
+//                        .requestMatchers(
+//                                "/api/institutions/**",
+//                                "/api/departments/**"
+//                        )
+//                        .hasAnyRole(
+//                                "SYSTEM_ADMIN",
+//                                "INSTITUTION_ADMIN"
+//                        )
+//
+//                        // Waiting Queue
+//                        .requestMatchers("/api/waiting-queue/**")
+//                        .hasAnyRole(
+//                                "SYSTEM_ADMIN",
+//                                "INSTITUTION_ADMIN",
+//                                "LAB_MANAGER"
+//                        )
+//
+//                        // Labs & Equipment
+//                        .requestMatchers(
+//                                "/api/labs/**",
+//                                "/api/equipment/**"
+//                        )
+//                        .hasAnyRole(LAB_USERS)
+//
+//                        // Bookings
+//                        .requestMatchers("/api/bookings/**")
+//                        .hasAnyRole(BOOKING_USERS)
+//
+//                        // Maintenance
+//                        .requestMatchers("/api/maintenance/**")
+//                        .hasAnyRole(
+//                                "SYSTEM_ADMIN",
+//                                "INSTITUTION_ADMIN",
+//                                "DEPARTMENT_HEAD",
+//                                "LAB_MANAGER",
+//                                "LAB_TECHNICIAN"
+//                        )
+//
+//                        // Sharing
+//                        .requestMatchers("/api/sharing/**")
+//                        .hasAnyRole(
+//                                "SYSTEM_ADMIN",
+//                                "INSTITUTION_ADMIN",
+//                                "DEPARTMENT_HEAD",
+//                                "LAB_MANAGER",
+//                                "RESEARCHER",
+//                                "RESEARCH_ASSOCIATE",
+//                                "RESEARCH_SCIENTIST"
+//                        )
+//
+//                        // Dashboard & Notifications
+//                        .requestMatchers(
+//                                "/api/dashboard/**",
+//                                "/api/notifications/**"
+//                        )
+//                        .authenticated()
+//
+//                        // User Management
+//                        .requestMatchers("/api/users/**")
+//                        .hasAnyRole(
+//                                "SYSTEM_ADMIN",
+//                                "INSTITUTION_ADMIN"
+//                        )
+//
+//                        .anyRequest().authenticated()
+//                )
 
-                        // System Admin
-                        .requestMatchers(
-                                "/api/system/**"
-                        ).hasRole("SYSTEM_ADMIN")
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureUrl("http://localhost:5173/login?error=true")
+                );
 
-                        // Institution Admin
-                        .requestMatchers(
-                                "/api/institutions/**",
-                                "/api/departments/**"
-                        ).hasAnyRole("SYSTEM_ADMIN", "INSTITUTION_ADMIN")
+        http.addFilterBefore(
+                authTokenFilter,
+                UsernamePasswordAuthenticationFilter.class
+        );
 
-                        // Labs
-                        .requestMatchers(
-                                "/api/labs/**"
-                        ).hasAnyRole(
-                                "SYSTEM_ADMIN",
-                                "INSTITUTION_ADMIN",
-                                "DEPARTMENT_HEAD",
-                                "LAB_MANAGER",
-                                "LAB_TECHNICIAN",
-                                "PROFESSOR",
-                                "ASSOCIATE_PROFESSOR",
-                                "ASSISTANT_PROFESSOR",
-                                "RESEARCHER",
-                                "RESEARCH_ASSOCIATE",
-                                "RESEARCH_SCIENTIST",
-                                "STUDENT"
-                        )
-
-                        // Equipment
-                        .requestMatchers(
-                                "/api/equipment/**"
-                        ).hasAnyRole(
-                                "SYSTEM_ADMIN",
-                                "INSTITUTION_ADMIN",
-                                "DEPARTMENT_HEAD",
-                                "LAB_MANAGER",
-                                "LAB_TECHNICIAN",
-                                "PROFESSOR",
-                                "ASSOCIATE_PROFESSOR",
-                                "ASSISTANT_PROFESSOR",
-                                "RESEARCHER",
-                                "RESEARCH_ASSOCIATE",
-                                "RESEARCH_SCIENTIST",
-                                "STUDENT"
-                        )
-
-                        // Bookings
-                        .requestMatchers("/api/bookings/**")
-                        .hasAnyRole(
-                                "SYSTEM_ADMIN",
-                                "INSTITUTION_ADMIN",
-                                "DEPARTMENT_HEAD",
-                                "LAB_MANAGER",
-                                "PROFESSOR",
-                                "ASSOCIATE_PROFESSOR",
-                                "ASSISTANT_PROFESSOR",
-                                "RESEARCHER",
-                                "RESEARCH_ASSOCIATE",
-                                "RESEARCH_SCIENTIST",
-                                "STUDENT"
-                        )
-
-                        // Dashboard
-                        .requestMatchers(
-                                "/api/dashboard/**"
-                        ).authenticated()
-
-                        // Maintenance
-                        .requestMatchers(
-                                "/api/maintenance/**"
-                        ).hasAnyRole(
-                                "SYSTEM_ADMIN",
-                                "INSTITUTION_ADMIN",
-                                "DEPARTMENT_HEAD",
-                                "LAB_MANAGER",
-                                "LAB_TECHNICIAN"
-                        )
-
-                        // Sharing
-                        .requestMatchers(
-                                "/api/sharing/**"
-                        ).hasAnyRole(
-                                "SYSTEM_ADMIN",
-                                "INSTITUTION_ADMIN",
-                                "DEPARTMENT_HEAD",
-                                "LAB_MANAGER",
-                                "RESEARCHER",
-                                "RESEARCH_ASSOCIATE",
-                                "RESEARCH_SCIENTIST"
-                        )
-
-                        // Notifications
-                        .requestMatchers(
-                                "/api/notifications/**"
-                        ).authenticated()
-
-                        // Admin/User Management
-                        .requestMatchers(
-                                "/api/users/**"
-                        ).permitAll()
-*/
-/*
-                        .anyRequest().authenticated()
-*/
-                //);
-
-        httpSecurity.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        httpSecurity.exceptionHandling(exception -> exception.authenticationEntryPoint(authEntryPointJwt));
-
-        httpSecurity.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return  httpSecurity.build();
+        return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://localhost:5173"
+        ));
+
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
+
+        configuration.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin"
+        ));
+
+        configuration.setExposedHeaders(List.of(
+                "Authorization"
+        ));
+
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
@@ -199,23 +217,15 @@ public class SecurityConfig {
         return source;
     }
 
-    @Configuration
-    public class WebConfig implements WebMvcConfigurer {
-
-        @Override
-        public void addResourceHandlers(ResourceHandlerRegistry registry) {
-            registry.addResourceHandler("/uploads/**")
-                    .addResourceLocations("file:uploads/");
-        }
-    }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration) throws Exception {
+
         return configuration.getAuthenticationManager();
     }
-
 }

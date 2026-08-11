@@ -4,10 +4,31 @@ import sharingService from "../services/sharingService";
 
 // ---------------- Available Equipment ----------------
 
-export const useAvailableEquipment = () => {
+export const useAvailableEquipment = (
+  institutionCode,
+  departmentName
+) => {
   return useQuery(
-    ["available-equipment"],
-    sharingService.getAvailableEquipment
+    ["available-equipment", institutionCode, departmentName],
+    () =>
+      sharingService.getAvailableEquipment(
+        institutionCode,
+        departmentName
+      ),
+    {
+      enabled: !!institutionCode && !!departmentName,
+    }
+  );
+};
+
+
+
+// ---------------- Available Institutions ----------------
+
+export const useAvailableInstitutions = () => {
+  return useQuery(
+    ["available-institutions"],
+    sharingService.getAvailableInstitutions
   );
 };
 
@@ -27,7 +48,7 @@ export const useRequestEquipment = () => {
       onError: (error) => {
         toast.error(
           error.response?.data?.message ||
-            "Failed to submit request."
+          "Failed to submit request."
         );
       },
     }
@@ -84,11 +105,13 @@ export const useApproveSharing = () => {
       onSuccess: () => {
         toast.success("Request approved.");
         queryClient.invalidateQueries("incoming-requests");
+        queryClient.invalidateQueries("outgoing-requests");
+        queryClient.invalidateQueries("sharing-history");
       },
       onError: (error) => {
         toast.error(
           error.response?.data?.message ||
-            "Approval failed."
+          "Approval failed."
         );
       },
     }
@@ -106,11 +129,13 @@ export const useRejectSharing = () => {
       onSuccess: () => {
         toast.success("Request rejected.");
         queryClient.invalidateQueries("incoming-requests");
+        queryClient.invalidateQueries("outgoing-requests");
+        queryClient.invalidateQueries("sharing-history");
       },
       onError: (error) => {
         toast.error(
           error.response?.data?.message ||
-            "Reject failed."
+          "Reject failed."
         );
       },
     }
@@ -122,16 +147,18 @@ export const useRejectSharing = () => {
 export const useStartSharing = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    sharingService.startSharing,
-    {
-      onSuccess: () => {
-        toast.success("Sharing started.");
-        queryClient.invalidateQueries("incoming-requests");
-        queryClient.invalidateQueries("sharing-history");
-      },
-    }
-  );
+  return useMutation(sharingService.startSharing, {
+    onSuccess: () => {
+      toast.success("Sharing started.");
+      queryClient.invalidateQueries("incoming-requests");
+      queryClient.invalidateQueries("sharing-history");
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to start sharing."
+      );
+    },
+  });
 };
 
 // ---------------- Complete Sharing ----------------
@@ -139,14 +166,26 @@ export const useStartSharing = () => {
 export const useCompleteSharing = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    sharingService.completeSharing,
+  return useMutation(sharingService.completeSharing, {
+    onSuccess: () => {
+      toast.success("Sharing completed.");
+      queryClient.invalidateQueries("incoming-requests");
+      queryClient.invalidateQueries("sharing-history");
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to complete sharing."
+      );
+    },
+  });
+};
+
+export const useDepartments = (institutionCode) => {
+  return useQuery(
+    ["departments", institutionCode],
+    () => sharingService.getDepartments(institutionCode),
     {
-      onSuccess: () => {
-        toast.success("Sharing completed.");
-        queryClient.invalidateQueries("incoming-requests");
-        queryClient.invalidateQueries("sharing-history");
-      },
+      enabled: !!institutionCode,
     }
   );
 };
@@ -156,13 +195,15 @@ export const useCompleteSharing = () => {
 export const useCancelSharing = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    sharingService.cancelSharing,
-    {
-      onSuccess: () => {
-        toast.success("Request cancelled.");
-        queryClient.invalidateQueries("outgoing-requests");
-      },
-    }
-  );
+  return useMutation(sharingService.cancelSharing, {
+    onSuccess: () => {
+      toast.success("Request cancelled.");
+      queryClient.invalidateQueries("outgoing-requests");
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to cancel request."
+      );
+    },
+  });
 };
