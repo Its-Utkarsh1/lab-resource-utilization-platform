@@ -1,20 +1,64 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+import {
+  Navigate
+} from "react-router-dom";
 
-  console.log("User:", user);
-  console.log("Allowed Roles:", allowedRoles);
+import {
+  useAuth
+} from "../../hooks/useAuth";
 
-  if (isLoading) return <div>Loading...</div>;
+const ProtectedRoute = ({
+  children,
+  allowedRoles
+}) => {
+
+  const {
+    isAuthenticated,
+    isLoading,
+    user
+  } = useAuth();
+
+  console.log(
+    "ProtectedRoute user:",
+    user
+  );
+
+  console.log(
+    "ProtectedRoute authenticated:",
+    isAuthenticated
+  );
+
+  console.log(
+    "ProtectedRoute loading:",
+    isLoading
+  );
+
+  if (isLoading) {
+
+    return (
+      <div>
+        Loading...
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+
+    console.log(
+      "ProtectedRoute: NOT AUTHENTICATED"
+    );
+
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
   }
 
   if (!allowedRoles) {
+
     return children;
   }
 
@@ -23,11 +67,26 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     user?.roleName ??
     user?.role;
 
-  console.log("Resolved Role:", role);
+  console.log(
+    "Resolved role:",
+    role
+  );
 
-  if (!allowedRoles.includes(role)) {
-    console.log("Access Denied");
-    return <Navigate to="/dashboard" replace />;
+  if (
+    !allowedRoles.includes(role)
+  ) {
+
+    console.log(
+      "Access denied for role:",
+      role
+    );
+
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
   }
 
   return children;

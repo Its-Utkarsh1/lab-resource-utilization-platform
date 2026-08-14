@@ -1,20 +1,25 @@
 package com.LabResourceUtilizationPlatform.Service.ServiceImpl;
 
-import aj.org.objectweb.asm.commons.Remapper;
 import com.LabResourceUtilizationPlatform.Dtos.Request.*;
 import com.LabResourceUtilizationPlatform.Dtos.Response.AuthResponse;
 import com.LabResourceUtilizationPlatform.Dtos.Response.UserResponse;
+import com.LabResourceUtilizationPlatform.Entity.Enum.OtpPurpose;
 import com.LabResourceUtilizationPlatform.Entity.User;
+import com.LabResourceUtilizationPlatform.Repository.DepartmentRepository;
+import com.LabResourceUtilizationPlatform.Repository.InstitutionRepository;
+import com.LabResourceUtilizationPlatform.Repository.RoleRepository;
 import com.LabResourceUtilizationPlatform.Repository.UserRepository;
 import com.LabResourceUtilizationPlatform.Security.JwtUtils;
 import com.LabResourceUtilizationPlatform.Service.AuthService;
+
+import com.LabResourceUtilizationPlatform.Service.OtpService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
 import org.modelmapper.ModelMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,47 +28,110 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-
 @Service
-
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final JwtUtils jwtUtils;
-    private final OtpServiceImpl  otpService;
-    private final EmailServiceImpl emailService;
+
+    private final OtpService otpService;
+
     private final UserRepository userRepository;
+
     private final UserDetailsService userDetailsService;
+
     private final AuthenticationManager authenticationManager;
-    private final RedisTemplate<String, String> redisTemplate;
+
     private final PasswordEncoder passwordEncoder;
+
     private final ModelMapper modelMapper;
-    private static final Logger logger = LoggerFactory.getLogger(AuthServiceImpl.class);
+
+    private final InstitutionRepository institutionRepository;
+
+    private final DepartmentRepository departmentRepository;
+
+    private final RoleRepository roleRepository;
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(AuthServiceImpl.class);
+
+
+    // =========================================================
+    // LOGIN
+    // =========================================================
 
     @Override
     public AuthResponse login(LoginRequest request) {
 
-        User user = userRepository.findByEmail(request.getEmail()).orElseThrow(()-> new RuntimeException("User not found."));
+        User user =
+                userRepository
+                        .findByEmail(
+                                request.getEmail()
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found."
+                                )
+                        );
 
-        System.out.println("Login email = " + request.getEmail());
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
 
+        logger.info(
+                "Login email = {}",
+                email
+        );
 
-        //Check if User is Verified or not
-        if(!user.getEmailVerified()){
-            throw new RuntimeException("Please verify your email first.");
+        // -----------------------------------------
+        // Check email verification
+        // -----------------------------------------
+
+        if (!user.getEmailVerified()) {
+
+            throw new RuntimeException(
+                    "Please verify your email first."
+            );
         }
 
-        //Authenticating
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        //Loading authenticated user
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+        // -----------------------------------------
+        // Authenticate
+        // -----------------------------------------
 
-        //Generate tokens
-        String accessToken = jwtUtils.generateAccessToken(userDetails);
-        String refreshToken = jwtUtils.generateRefreshToken(userDetails);
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        email,
+                        request.getPassword()
+                )
+        );
 
-        logger.info("User logged in successfully: {}", request.getEmail());
+        // -----------------------------------------
+        // Load authenticated user
+        // -----------------------------------------
+
+        UserDetails userDetails =
+                userDetailsService
+                        .loadUserByUsername(email);
+
+        // -----------------------------------------
+        // Generate tokens
+        // -----------------------------------------
+
+        String accessToken =
+                jwtUtils.generateAccessToken(
+                        userDetails
+                );
+
+        String refreshToken =
+                jwtUtils.generateRefreshToken(
+                        userDetails
+                );
+
+        logger.info(
+                "User logged in successfully: {}",
+                email
+        );
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -72,181 +140,373 @@ public class AuthServiceImpl implements AuthService {
                 .userId(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(user.getRole().getRoleName().name())
-                .institutionCode(user.getInstitution().getCode())
-                .institutionName(user.getInstitution().getName())
-                .departmentName(user.getDepartment().getName())
-                .emailVerified(user.getEmailVerified())
+                .phoneNumber(user.getPhoneNumber())
+                .role(
+                        user.getRole()
+                                .getRoleName()
+                                .name()
+                )
+                .institutionCode(
+                        user.getInstitution()
+                                .getCode()
+                )
+                .institutionName(
+                        user.getInstitution()
+                                .getName()
+                )
+                .departmentName(
+                        user.getDepartment()
+                                .getName()
+                )
+                .emailVerified(
+                        user.getEmailVerified()
+                )
                 .build();
     }
+
+
+    // =========================================================
+    // GET CURRENT USER
+    // =========================================================
 
     @Override
     @Transactional
     public UserResponse getCurrentUser() {
 
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
+        var authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
 
-        System.out.println("Authenticated Email = " + email);
+        if (
+                authentication == null
+                        || !authentication.isAuthenticated()
+        ) {
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found."));
+            throw new RuntimeException(
+                    "No authentication found."
+            );
+        }
 
-        System.out.println("Database User = " + user.getEmail());
+        String email =
+                authentication.getName();
 
-        UserResponse response = modelMapper.map(user, UserResponse.class);
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found: "
+                                                + email
+                                )
+                        );
 
-        response.setRole(user.getRole().getRoleName().name());
-        response.setInstitution(user.getInstitution().getName());
-        response.setDepartment(user.getDepartment().getName());
+        UserResponse response =
+                modelMapper.map(
+                        user,
+                        UserResponse.class
+                );
+
+        response.setRole(
+                user.getRole()
+                        .getRoleName()
+                        .name()
+        );
+
+        response.setInstitution(
+                user.getInstitution()
+                        .getName()
+        );
+
+        response.setDepartment(
+                user.getDepartment()
+                        .getName()
+        );
 
         return response;
     }
 
+
+    // =========================================================
+    // VERIFY EMAIL OTP
+    // =========================================================
+
     @Override
-    public void verifyEmail(VerifyEmailRequest request) {
+    @Transactional
+    public void verifyEmail(
+            VerifyEmailRequest request
+    ) {
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found."));
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
 
-        // Check if already verified
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found."
+                                )
+                        );
+
+        // -----------------------------------------
+        // Already verified
+        // -----------------------------------------
+
         if (user.getEmailVerified()) {
-            throw new RuntimeException("Email is already verified.");
+
+            throw new RuntimeException(
+                    "Email is already verified."
+            );
         }
 
-        // Get OTP from Redis
-        String storedOtp = redisTemplate.opsForValue()
-                .get("otp:" + request.getEmail());
+        // -----------------------------------------
+        // Verify OTP from PostgreSQL
+        // -----------------------------------------
 
-        // OTP expired or not found
-        if (storedOtp == null) {
-            throw new RuntimeException("OTP has expired.");
-        }
+        otpService.verifyOtp(
+                email,
+                request.getOtp(),
+                OtpPurpose.VERIFY_EMAIL
+        );
 
-        // Verify OTP
-        if (!storedOtp.equals(request.getOtp())) {
-            throw new RuntimeException("Invalid OTP.");
-        }
+        // -----------------------------------------
+        // Mark email verified
+        // -----------------------------------------
 
-        // Mark email as verified
         user.setEmailVerified(true);
+
         userRepository.save(user);
 
-        // Remove OTP from Redis
-        redisTemplate.delete("otp:" + request.getEmail());
-
-        logger.info("Email verified successfully: {}", user.getEmail());
+        logger.info(
+                "Email verified successfully: {}",
+                email
+        );
     }
 
+
+    // =========================================================
+    // RESEND EMAIL OTP
+    // =========================================================
+
     @Override
-    public void resendOtp(ResendOtpRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found."));
+    public void resendOtp(
+            ResendOtpRequest request
+    ) {
+
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
+
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found."
+                                )
+                        );
+
+        // -----------------------------------------
+        // Already verified
+        // -----------------------------------------
 
         if (user.getEmailVerified()) {
-            throw new RuntimeException("Email is already verified.");
+
+            throw new RuntimeException(
+                    "Email is already verified."
+            );
         }
 
-        String otp = otpService.generateOtp();
+        // -----------------------------------------
+        // Generate + save + send OTP
+        // -----------------------------------------
 
-        // Store new OTP in Redis for 10 minutes
-        redisTemplate.opsForValue().set(
-                "otp:" + user.getEmail(),
-                otp,
-                Duration.ofMinutes(10)
-        );
-        emailService.sendOtpByEmail(user.getEmail(), otp);
-
-        logger.info("OTP resent successfully to {}", user.getEmail());
-    }
-
-    @Override
-    public void forgotPassword(ForgotPasswordRequest request) {
-
-        System.out.println("Forgot Password API called");
-
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found."));
-
-        String otp = otpService.generateOtp();
-
-        System.out.println("Generated OTP = " + otp);
-
-        redisTemplate.opsForValue().set(
-                "reset-otp:" + user.getEmail(),
-                otp,
-                Duration.ofMinutes(10)
+        otpService.generateAndSendOtp(
+                email,
+                OtpPurpose.VERIFY_EMAIL
         );
 
-        System.out.println("OTP saved");
-
-        String value = redisTemplate.opsForValue()
-                .get("reset-otp:" + user.getEmail());
-
-        System.out.println("Redis value = " + value);
-
-        emailService.sendOtpByEmail(user.getEmail(), otp);
+        logger.info(
+                "OTP resent successfully to {}",
+                email
+        );
     }
 
+
+    // =========================================================
+    // FORGOT PASSWORD
+    // =========================================================
+
     @Override
-    public void resetPassword(ResetPasswordRequest request) {
+    public void forgotPassword(
+            ForgotPasswordRequest request
+    ) {
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found."));
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
 
-        String storedOtp = redisTemplate.opsForValue()
-                .get("reset-otp:" + request.getEmail());
+        logger.info(
+                "Forgot password requested for {}",
+                email
+        );
 
-        if (storedOtp == null) {
-            throw new RuntimeException("OTP has expired.");
-        }
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found."
+                                )
+                        );
 
-        if (!storedOtp.equals(request.getOtp())) {
-            throw new RuntimeException("Invalid OTP.");
-        }
+        // -----------------------------------------
+        // Generate + save + send OTP
+        // -----------------------------------------
+
+        otpService.generateAndSendOtp(
+                user.getEmail(),
+                OtpPurpose.FORGOT_PASSWORD
+        );
+
+        logger.info(
+                "Password reset OTP sent to {}",
+                email
+        );
+    }
+
+
+    // =========================================================
+    // RESET PASSWORD
+    // =========================================================
+
+    @Override
+    @Transactional
+    public void resetPassword(
+            ResetPasswordRequest request
+    ) {
+
+        String email =
+                request.getEmail()
+                        .trim()
+                        .toLowerCase();
+
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found."
+                                )
+                        );
+
+        // -----------------------------------------
+        // Verify OTP from PostgreSQL
+        // -----------------------------------------
+
+        otpService.verifyOtp(
+                email,
+                request.getOtp(),
+                OtpPurpose.FORGOT_PASSWORD
+        );
+
+        // -----------------------------------------
+        // Update password
+        // -----------------------------------------
 
         user.setPassword(
-                passwordEncoder.encode(request.getNewPassword()));
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
+        );
 
         userRepository.save(user);
 
-        redisTemplate.delete("reset-otp:" + request.getEmail());
-
-        logger.info("Password reset successfully for {}", user.getEmail());
+        logger.info(
+                "Password reset successfully for {}",
+                email
+        );
     }
 
-    @Override
-    public AuthResponse refreshToken(RefreshTokenRequest request) {
 
-        if (!jwtUtils.validateRefreshToken(request.getRefreshToken())) {
-            throw new RuntimeException("Invalid or expired refresh token.");
+    // =========================================================
+    // REFRESH TOKEN
+    // =========================================================
+
+    @Override
+    public AuthResponse refreshToken(
+            RefreshTokenRequest request
+    ) {
+
+        if (
+                !jwtUtils.validateRefreshToken(
+                        request.getRefreshToken()
+                )
+        ) {
+
+            throw new RuntimeException(
+                    "Invalid or expired refresh token."
+            );
         }
 
-        String email = jwtUtils.getUsernameFromRefreshToken(
-                request.getRefreshToken());
+        String email =
+                jwtUtils.getUsernameFromRefreshToken(
+                        request.getRefreshToken()
+                );
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found."));
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "User not found."
+                                )
+                        );
 
         UserDetails userDetails =
-                userDetailsService.loadUserByUsername(email);
+                userDetailsService
+                        .loadUserByUsername(email);
 
         String newAccessToken =
-                jwtUtils.generateAccessToken(userDetails);
+                jwtUtils.generateAccessToken(
+                        userDetails
+                );
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(request.getRefreshToken())
+                .refreshToken(
+                        request.getRefreshToken()
+                )
                 .tokenType("Bearer")
                 .userId(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .role(user.getRole().getRoleName().name())
-                .institutionCode(user.getInstitution().getCode())
-                .institutionName(user.getInstitution().getName())
-                .departmentName(user.getDepartment().getName())
-                .emailVerified(user.getEmailVerified())
+                .phoneNumber(user.getPhoneNumber())
+                .role(
+                        user.getRole()
+                                .getRoleName()
+                                .name()
+                )
+                .institutionCode(
+                        user.getInstitution()
+                                .getCode()
+                )
+                .institutionName(
+                        user.getInstitution()
+                                .getName()
+                )
+                .departmentName(
+                        user.getDepartment()
+                                .getName()
+                )
+                .emailVerified(
+                        user.getEmailVerified()
+                )
                 .build();
     }
 }

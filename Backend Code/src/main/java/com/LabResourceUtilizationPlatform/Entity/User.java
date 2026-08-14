@@ -30,6 +30,12 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(unique = true)
+    private String googleId;
+
+    @Builder.Default
+    private String authProvider = "LOCAL";
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;

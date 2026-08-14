@@ -18,11 +18,12 @@ public class AuthResponse {
     private String email;
     private String role;
 
+    private String phoneNumber;
+
     private String institutionCode;
     private String institutionName;
 
     private String departmentName;
-
 
     private boolean emailVerified;
 }

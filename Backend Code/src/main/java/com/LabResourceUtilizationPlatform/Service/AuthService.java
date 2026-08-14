@@ -4,6 +4,8 @@ import com.LabResourceUtilizationPlatform.Dtos.Request.*;
 import com.LabResourceUtilizationPlatform.Dtos.Response.AuthResponse;
 import com.LabResourceUtilizationPlatform.Dtos.Response.UserResponse;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 public interface AuthService {
 
     AuthResponse login(LoginRequest request);
@@ -19,4 +21,5 @@ public interface AuthService {
     void forgotPassword(ForgotPasswordRequest request);
 
     void resetPassword(ResetPasswordRequest request);
+
 }

@@ -2,11 +2,14 @@ package com.LabResourceUtilizationPlatform.Security;
 
 import com.LabResourceUtilizationPlatform.Entity.User;
 import com.LabResourceUtilizationPlatform.Repository.UserRepository;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -14,63 +17,158 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+public class OAuth2SuccessHandler
+        extends SimpleUrlAuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final CustomUserDetailsService userDetailsService;
     private final JwtUtils jwtUtils;
 
+    private static final String FRONTEND_URL =
+            "http://localhost:3000";
+
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication)
-            throws IOException, ServletException {
+    public void onAuthenticationSuccess(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication
+    ) throws IOException, ServletException {
 
-        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+        OAuth2User googleUser =
+                (OAuth2User) authentication.getPrincipal();
 
-        String email = oAuth2User.getAttribute("email");
-        String name = oAuth2User.getAttribute("name");
+        String googleId =
+                googleUser.getAttribute("sub");
+
+        String email =
+                googleUser.getAttribute("email");
+
+        String name =
+                googleUser.getAttribute("name");
 
         if (email != null) {
             email = email.trim().toLowerCase();
         }
 
-        log.info("=========== GOOGLE LOGIN ===========");
-        log.info("Google Name  : {}", name);
-        log.info("Google Email : {}", email);
+        log.info("========== GOOGLE LOGIN ==========");
+        log.info("Google ID: {}", googleId);
+        log.info("Google Email: {}", email);
+        log.info("Google Name: {}", name);
 
-        User user = userRepository.findByEmail(email).orElse(null);
+        // =====================================================
+        // VALIDATE GOOGLE RESPONSE
+        // =====================================================
 
-        if (user == null) {
-            log.warn("User not found with email: {}", email);
+        if (
+                email == null ||
+                        email.isBlank() ||
+                        googleId == null ||
+                        googleId.isBlank()
+        ) {
 
             response.sendRedirect(
-                    "http://localhost:3000/login?error=" +
-                            URLEncoder.encode(
-                                    "Please register first.",
-                                    StandardCharsets.UTF_8
-                            )
+                    FRONTEND_URL +
+                            "/login?error=google_data_missing"
             );
+
             return;
         }
 
-        log.info("User found: {}", user.getEmail());
+        // =====================================================
+        // FIND EXISTING APPLICATION USER
+        // =====================================================
+
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElse(null);
+
+        // =====================================================
+        // GOOGLE LOGIN ONLY
+        // =====================================================
+
+        if (user == null) {
+
+            log.warn(
+                    "Google account is not registered: {}",
+                    email
+            );
+
+            response.sendRedirect(
+                    FRONTEND_URL +
+                            "/login?error=google_account_not_registered"
+            );
+
+            return;
+        }
+
+        // =====================================================
+        // LINK GOOGLE ACCOUNT
+        // =====================================================
+
+        if (user.getGoogleId() == null) {
+
+            user.setGoogleId(googleId);
+            user.setAuthProvider("GOOGLE");
+
+            userRepository.save(user);
+
+            log.info(
+                    "Google account linked to: {}",
+                    email
+            );
+
+        } else if (
+                !googleId.equals(user.getGoogleId())
+        ) {
+
+            log.warn(
+                    "Google ID mismatch for: {}",
+                    email
+            );
+
+            response.sendRedirect(
+                    FRONTEND_URL +
+                            "/login?error=google_account_mismatch"
+            );
+
+            return;
+        }
+
+        // =====================================================
+        // LOAD USER DETAILS
+        // =====================================================
 
         UserDetails userDetails =
-                customUserDetailsService.loadUserByUsername(user.getEmail());
+                userDetailsService
+                        .loadUserByUsername(email);
 
-        String token = jwtUtils.generateAccessToken(userDetails);
+        // =====================================================
+        // GENERATE APPLICATION JWT
+        // =====================================================
 
-        log.info("JWT generated successfully.");
+        String accessToken =
+                jwtUtils.generateAccessToken(
+                        userDetails
+                );
+
+        log.info(
+                "Google login successful: {}",
+                email
+        );
+
+        // =====================================================
+        // SEND JWT TO FRONTEND
+        // =====================================================
 
         response.sendRedirect(
-                "http://localhost:3000/oauth-success?token=" + token
+                FRONTEND_URL +
+                        "/oauth-success?token=" +
+                        accessToken
         );
     }
 }

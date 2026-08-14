@@ -1,364 +1,116 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import {
-  useDepartmentHeadDashboard,
-  useWeeklyUtilization,
-} from "../hooks/useDashboard";
+import { useDepartmentHeadDashboard, useWeeklyUtilization } from "../hooks/useDashboard";
+import StatCard from "../components/common/StatCard";
+import StatusBadge from "../components/common/StatusBadge";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import WeeklyUtilizationChart from "../components/common/WeeklyUtilizationChart";
+
+const quickActions = [
+  { to: "/equipment", label: "Manage Equipment", tag: "EQ", accent: "teal" },
+  { to: "/bookings", label: "View Bookings", tag: "BK", accent: "amber" },
+  { to: "/analytics", label: "Analytics", tag: "AN", accent: "teal" },
+  { to: "/sharing", label: "Resource Sharing", tag: "SH", accent: "amber" },
+];
+
+const accentChip = {
+  amber: "bg-[#E8A33D]/10 text-[#E8A33D]",
+  teal: "bg-[#1F7A6C]/10 text-[#1F7A6C]",
+};
 
 const DepartmentHeadDashboard = () => {
   const { user } = useAuth();
+  const { data: dashboard, isLoading: dashboardLoading } = useDepartmentHeadDashboard();
+  const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyUtilization();
 
-  const {
-    data: dashboard,
-    isLoading: dashboardLoading,
-  } = useDepartmentHeadDashboard();
-
-  const {
-    data: weeklyData,
-    isLoading: weeklyLoading,
-  } = useWeeklyUtilization();
-
-  const weeklyUtilization =
-    weeklyData?.utilization ?? [0, 0, 0, 0, 0, 0, 0];
+  const weeklyUtilization = weeklyData?.utilization ?? [0, 0, 0, 0, 0, 0, 0];
 
   if (dashboardLoading || weeklyLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Loading dashboard..." />;
   }
 
   return (
-    <div className="space-y-8">
-
+    <div className="space-y-6">
       {/* Header */}
-
-      <div className="flex items-center justify-between">
-
-        <div>
-
-          <h1 className="text-3xl font-bold text-slate-900">
-            Welcome back, {user?.fullName?.split(" ")[0]}
-          </h1>
-
-          <p className="text-slate-600 mt-1">
-            Department Head Dashboard
-          </p>
-
-        </div>
-
+      <div className="bg-white rounded-sm border border-[#D8D3C7] border-l-2 border-l-[#1F7A6C] p-6">
+        <h1 className="text-3xl font-black text-[#14181C] tracking-tight">
+          Welcome back, {user?.fullName?.split(" ")[0] ?? "there"}
+        </h1>
+        <p className="text-[#5B6770] mt-1 font-mono text-xs tracking-widest uppercase">
+          Department Head Dashboard
+        </p>
       </div>
 
       {/* Statistics */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-        <div className="bg-white rounded-xl shadow border p-6">
-
-          <p className="text-sm text-slate-500">
-            Total Labs
-          </p>
-
-          <h2 className="text-4xl font-bold text-green-600 mt-3">
-            {dashboard?.totalLabs}
-          </h2>
-
-        </div>
-
-        <div className="bg-white rounded-xl shadow border p-6">
-
-          <p className="text-sm text-slate-500">
-            Total Equipment
-          </p>
-
-          <h2 className="text-4xl font-bold text-blue-600 mt-3">
-            {dashboard?.totalEquipment}
-          </h2>
-
-        </div>
-
-        <div className="bg-white rounded-xl shadow border p-6">
-
-          <p className="text-sm text-slate-500">
-            Active Bookings
-          </p>
-
-          <h2 className="text-4xl font-bold text-amber-600 mt-3">
-            {dashboard?.activeBookings}
-          </h2>
-
-        </div>
-
-        <div className="bg-white rounded-xl shadow border p-6">
-
-          <p className="text-sm text-slate-500">
-            Department Users
-          </p>
-
-          <h2 className="text-4xl font-bold text-purple-600 mt-3">
-            {dashboard?.departmentUsers}
-          </h2>
-
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard title="Total Labs" value={dashboard?.totalLabs ?? 0} color="teal" />
+        <StatCard title="Total Equipment" value={dashboard?.totalEquipment ?? 0} color="amber" />
+        <StatCard title="Active Bookings" value={dashboard?.activeBookings ?? 0} color="teal" />
+        <StatCard title="Department Users" value={dashboard?.departmentUsers ?? 0} color="amber" />
       </div>
 
-      <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto">
-        {JSON.stringify(dashboard, null, 2)}
-      </pre>
       {/* Quick Actions */}
-
-      <div className="bg-white rounded-xl shadow border p-6">
-
-        <h2 className="text-xl font-semibold mb-5">
-          Quick Actions
-        </h2>
+      <div className="bg-white rounded-sm border border-[#D8D3C7] p-6">
+        <h2 className="text-xl font-bold text-[#14181C] mb-5">Quick Actions</h2>
 
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-
-          <Link
-            to="/equipment"
-            className="bg-green-600 text-white rounded-lg p-4 text-center hover:bg-green-700 transition"
-          >
-            Manage Equipment
-          </Link>
-
-          <Link
-            to="/bookings"
-            className="bg-blue-600 text-white rounded-lg p-4 text-center hover:bg-blue-700 transition"
-          >
-            View Bookings
-          </Link>
-
-          <Link
-            to="/analytics"
-            className="bg-purple-600 text-white rounded-lg p-4 text-center hover:bg-purple-700 transition"
-          >
-            Analytics
-          </Link>
-
-          <Link
-            to="/sharing"
-            className="bg-orange-600 text-white rounded-lg p-4 text-center hover:bg-orange-700 transition"
-          >
-            Resource Sharing
-          </Link>
-
+          {quickActions.map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="border border-[#D8D3C7] rounded-sm p-4 flex flex-col items-center text-center gap-2 hover:border-[#1F7A6C] transition-colors"
+            >
+              <span className={`w-9 h-9 rounded-sm flex items-center justify-center font-mono text-[10px] font-bold ${accentChip[action.accent]}`}>
+                {action.tag}
+              </span>
+              <span className="text-sm font-medium text-[#14181C]">{action.label}</span>
+            </Link>
+          ))}
         </div>
-
       </div>
 
       {/* Weekly Utilization */}
-
-      <div className="bg-white rounded-xl shadow border p-6">
-
-        <h2 className="text-xl font-semibold mb-6">
-          Weekly Utilization
-        </h2>
-
-        <div className="flex items-end justify-between h-56">
-
-          {weeklyUtilization.map((value, index) => (
-
-            <div
-              key={index}
-              className="flex flex-col items-center gap-2"
-            >
-
-              <div
-                className="w-8 rounded-t-lg bg-green-500"
-                style={{
-                  height: `${Math.max(value * 12, 8)}px`,
-                }}
-              />
-
-              <span className="text-xs text-slate-500">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index]}
-              </span>
-
-              <span className="text-xs font-semibold">
-                {value}
-              </span>
-
-            </div>
-
-          ))}
-
-        </div>
-
+      <div className="bg-white rounded-sm border border-[#D8D3C7] p-6">
+        <h2 className="text-xl font-bold text-[#14181C] mb-5">Weekly Utilization</h2>
+        <WeeklyUtilizationChart data={weeklyUtilization} />
       </div>
 
-      {/* Department Overview */}
-
-      <div className="grid lg:grid-cols-2 gap-6">
-
-        <div className="bg-white rounded-xl shadow border p-6">
-
-          <h2 className="text-xl font-semibold mb-4">
-            Department Summary
-          </h2>
-
-          <ul className="space-y-4">
-
-            <li className="flex justify-between">
-              <span>Total Labs</span>
-              <span className="font-semibold">
-                {dashboard?.totalLabs}
-              </span>
-            </li>
-
-            <li className="flex justify-between">
-              <span>Total Equipment</span>
-              <span className="font-semibold">
-                {dashboard?.totalEquipment}
-              </span>
-            </li>
-
-            <li className="flex justify-between">
-              <span>Department Users</span>
-              <span className="font-semibold">
-                {dashboard?.departmentUsers}
-              </span>
-            </li>
-
-            <li className="flex justify-between">
-              <span>Active Bookings</span>
-              <span className="font-semibold">
-                {dashboard?.activeBookings}
-              </span>
-            </li>
-
-          </ul>
-
-        </div>
-
-        <div className="bg-white rounded-xl shadow border p-6">
-
-          <h2 className="text-xl font-semibold mb-4">
-            Weekly Booking Hours
-          </h2>
-
-          <div className="flex items-end justify-between h-48">
-
-            {weeklyUtilization.map((value, index) => (
-
-              <div
-                key={index}
-                className="flex flex-col items-center"
-              >
-
-                <div
-                  className="w-6 rounded bg-blue-500"
-                  style={{
-                    height: `${Math.max(value * 12, 8)}px`,
-                  }}
-                />
-
-                <span className="text-xs mt-2">
-                  {["M", "T", "W", "T", "F", "S", "S"][index]}
-                </span>
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </div>
-
-      </div>
       {/* Recent Bookings */}
+      <div className="bg-white rounded-sm border border-[#D8D3C7] p-6">
+        <h2 className="text-xl font-bold text-[#14181C] mb-5">Recent Department Bookings</h2>
 
-      <div className="bg-white rounded-xl shadow border p-6">
-
-        <h2 className="text-xl font-semibold mb-5">
-          Recent Department Bookings
-        </h2>
-
-        <table className="w-full">
-
-          <thead>
-
-            <tr className="border-b">
-
-              <th className="text-left py-3">
-                Equipment
-              </th>
-
-              <th className="text-left py-3">
-                User
-              </th>
-
-              <th className="text-left py-3">
-                Status
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {dashboard?.recentBookings?.length > 0 ? (
-
-              dashboard.recentBookings.map((booking, index) => (
-
-                <tr
-                  key={index}
-                  className="border-b"
-                >
-
-                  <td className="py-3">
-                    {booking.equipmentName}
-                  </td>
-
-                  <td>
-                    {booking.bookedBy}
-                  </td>
-
-                  <td>
-                    <span
-                      className={
-                        booking.status === "APPROVED"
-                          ? "text-green-600"
-                          : booking.status === "PENDING"
-                            ? "text-amber-600"
-                            : booking.status === "REJECTED"
-                              ? "text-red-600"
-                              : "text-blue-600"
-                      }
-                    >
-                      {booking.status}
-                    </span>
-                  </td>
-
-                </tr>
-
-              ))
-
-            ) : (
-
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-[#D8D3C7]">
               <tr>
-
-                <td
-                  colSpan="3"
-                  className="py-6 text-center text-slate-500"
-                >
-                  No recent bookings found.
-                </td>
-
+                <th className="text-left py-3 px-2 font-mono text-xs tracking-widest text-[#5B6770] uppercase">Equipment</th>
+                <th className="text-left py-3 px-2 font-mono text-xs tracking-widest text-[#5B6770] uppercase">User</th>
+                <th className="text-left py-3 px-2 font-mono text-xs tracking-widest text-[#5B6770] uppercase">Status</th>
               </tr>
-
-            )}
-
-          </tbody>
-
-        </table>
-
+            </thead>
+            <tbody>
+              {dashboard?.recentBookings?.length > 0 ? (
+                dashboard.recentBookings.map((booking, index) => (
+                  <tr key={index} className="border-b border-[#D8D3C7] hover:bg-[#F6F5F1]">
+                    <td className="py-3 px-2 text-[#14181C]">{booking.equipmentName}</td>
+                    <td className="py-3 px-2 text-[#5B6770]">{booking.bookedBy}</td>
+                    <td className="py-3 px-2">
+                      <StatusBadge status={booking.status} />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="py-6 text-center text-[#5B6770]">
+                    No recent bookings found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-
     </div>
   );
 };

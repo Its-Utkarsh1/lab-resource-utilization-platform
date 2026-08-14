@@ -4,6 +4,7 @@ import com.LabResourceUtilizationPlatform.Dtos.Request.CreateUserRequest;
 import com.LabResourceUtilizationPlatform.Dtos.Request.UpdateUserRequest;
 import com.LabResourceUtilizationPlatform.Dtos.Response.UserResponse;
 import com.LabResourceUtilizationPlatform.Entity.*;
+import com.LabResourceUtilizationPlatform.Entity.Enum.OtpPurpose;
 import com.LabResourceUtilizationPlatform.Entity.Enum.RoleName;
 import com.LabResourceUtilizationPlatform.Repository.*;
 import com.LabResourceUtilizationPlatform.Service.UserService;
@@ -13,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,7 +38,6 @@ public class UserServiceImpl implements UserService {
     private final ModelMapper modelMapper;
     private final LabRepository labRepository;
     private final PasswordEncoder passwordEncoder;
-    private final RedisTemplate<String, String> redisTemplate;
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     @Override
@@ -97,18 +96,10 @@ public class UserServiceImpl implements UserService {
             labRepository.save(lab);
         }
 
-        String otp = otpService.generateOtp();
-        redisTemplate.opsForValue().set(
-                "otp:" + savedUser.getEmail(),
-                otp,
-                Duration.ofMinutes(10)
+        otpService.generateAndSendOtp(
+                savedUser.getEmail(),
+                OtpPurpose.VERIFY_EMAIL
         );
-        try {
-            emailService.sendOtpByEmail(savedUser.getEmail(), otp);
-        } catch (Exception ex) {
-            redisTemplate.delete("otp:" + savedUser.getEmail());
-            throw ex;
-        }
         logger.info("User Registered: {}",request.getEmail());
 
         return mapToResponse(savedUser);

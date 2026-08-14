@@ -17,6 +17,7 @@ public class WaitingQueueController {
     private final WaitingQueueService waitingQueueService;
 
     @GetMapping("/my")
+
     public ResponseEntity<List<WaitingQueueResponse>> myQueue() {
 
         return ResponseEntity.ok(

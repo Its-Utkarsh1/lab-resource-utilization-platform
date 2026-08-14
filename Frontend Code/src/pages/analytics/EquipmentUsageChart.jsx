@@ -10,75 +10,70 @@ import {
   Legend,
 } from "recharts";
 
+// Same token palette as the rest of the app:
+// ink #14181C · paper #F6F5F1 · steel #5B6770 · amber #E8A33D · teal #1F7A6C · line #D8D3C7
+
+// NOTE: renders ONLY the chart — used inside AnalyticsDashboard's
+// SectionCard, which already supplies the card chrome/title. Height is
+// 350 to match BookingTrendChart, its row-sibling in the analytics grid.
+
+const axisTickStyle = { fontSize: 12, fill: "#5B6770", fontFamily: "monospace" };
+
+const truncate = (value) => (value.length > 18 ? value.substring(0, 18) + "..." : value);
+
 const EquipmentUsageChart = ({ data = [] }) => {
+  if (data.length === 0) {
+    return (
+      <div className="h-[350px] flex items-center justify-center text-sm text-[#5B6770]">
+        No equipment usage data yet.
+      </div>
+    );
+  }
+
   return (
-    <div className="card shadow-sm h-100">
-      <div className="card-header">
-        <h5 className="mb-0">Equipment Usage</h5>
-      </div>
+    <div style={{ height: 350 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          barGap={8}
+          barCategoryGap="30%"
+          margin={{ top: 8, right: 8, left: 0, bottom: 60 }}
+        >
+          <CartesianGrid stroke="#D8D3C7" strokeDasharray="3 3" vertical={false} />
 
-      <div className="card-body" style={{ height: 430 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            barGap={10}
-            barCategoryGap="30%"
-            margin={{
-              top: 20,
-              right: 20,
-              left: 20,
-              bottom: 90,
+          <XAxis
+            dataKey="equipmentName"
+            interval={0}
+            height={60}
+            angle={-30}
+            textAnchor="end"
+            tick={axisTickStyle}
+            axisLine={{ stroke: "#D8D3C7" }}
+            tickLine={false}
+            tickFormatter={truncate}
+          />
+
+          <YAxis allowDecimals={false} tick={axisTickStyle} axisLine={{ stroke: "#D8D3C7" }} tickLine={false} width={32} />
+
+          <Tooltip
+            formatter={(value, name) => [value, name === "totalBookings" ? "Bookings" : "Hours Used"]}
+            labelFormatter={(label) => `Equipment: ${label}`}
+            contentStyle={{
+              background: "#ffffff",
+              border: "1px solid #D8D3C7",
+              borderRadius: 4,
+              fontSize: 12,
+              fontFamily: "monospace",
             }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
+            labelStyle={{ color: "#14181C", fontWeight: 700, marginBottom: 4 }}
+          />
 
-            <XAxis
-              dataKey="equipmentName"
-              interval={0}
-              height={80}
-              tick={{
-                fontSize: 12,
-                fill: "#374151",
-              }}
-              tickFormatter={(value) =>
-                value.length > 18
-                  ? value.substring(0, 18) + "..."
-                  : value
-              }
-            />
+          <Legend wrapperStyle={{ fontSize: 12, fontFamily: "monospace", color: "#5B6770" }} />
 
-            <YAxis allowDecimals={false} />
-
-            <Tooltip
-              formatter={(value, name) => [
-                value,
-                name === "totalBookings"
-                  ? "Bookings"
-                  : "Hours Used",
-              ]}
-              labelFormatter={(label) => `Equipment: ${label}`}
-            />
-
-            <Legend />
-
-            <Bar
-              dataKey="totalBookings"
-              name="Bookings"
-              fill="#3b82f6"
-              radius={[6, 6, 0, 0]}
-              maxBarSize={45}
-            />
-
-            <Bar
-              dataKey="totalHours"
-              name="Hours Used"
-              fill="#22c55e"
-              radius={[6, 6, 0, 0]}
-              maxBarSize={45}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          <Bar dataKey="totalBookings" name="Bookings" fill="#1F7A6C" radius={[2, 2, 0, 0]} maxBarSize={36} />
+          <Bar dataKey="totalHours" name="Hours Used" fill="#E8A33D" radius={[2, 2, 0, 0]} maxBarSize={36} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 };

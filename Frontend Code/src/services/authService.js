@@ -1,4 +1,5 @@
 import api from './api'
+import axios from 'axios'
 
 const authService = {
   // POST /api/auth/login
@@ -43,8 +44,19 @@ const authService = {
     return response.data
   },
 
-  // GET /api/auth/me (YOU NEED TO ADD THIS IN BACKEND)
-  getCurrentUser: async () => {
+  // GET /api/auth/me (supports optional token for regToken flows)
+  getCurrentUser: async (token) => {
+    if (token) {
+      console.log('authService.getCurrentUser using token:', token?.slice?.(0,20) + '...');
+      const base = api.defaults.baseURL || 'http://localhost:8080/api'
+      const response = await axios.get(`${base}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return response.data
+    }
+
     const response = await api.get('/auth/me')
     return response.data
   },

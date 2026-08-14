@@ -1,31 +1,37 @@
 import React from "react";
 
-const colors = {
-  AVAILABLE: "bg-green-100 text-green-700",
-  APPROVED: "bg-green-100 text-green-700",
+// Same token palette as the rest of the app:
+// ink #14181C · paper #F6F5F1 · steel #5B6770 · amber #E8A33D · teal #1F7A6C · line #D8D3C7
 
-  PENDING: "bg-yellow-100 text-yellow-700",
+const STYLES = {
+  AVAILABLE: { text: "text-[#1F7A6C]", bg: "bg-[#1F7A6C]/10", dot: "bg-[#1F7A6C]" },
+  APPROVED: { text: "text-[#1F7A6C]", bg: "bg-[#1F7A6C]/10", dot: "bg-[#1F7A6C]" },
+  ACTIVE: { text: "text-[#1F7A6C]", bg: "bg-[#1F7A6C]/10", dot: "bg-[#1F7A6C]" },
+  COMPLETED: { text: "text-[#1F7A6C]", bg: "bg-[#1F7A6C]/10", dot: "bg-[#1F7A6C]" },
 
-  REJECTED: "bg-red-100 text-red-700",
+  PENDING: { text: "text-[#E8A33D]", bg: "bg-[#E8A33D]/10", dot: "bg-[#E8A33D]" },
+  MAINTENANCE: { text: "text-[#E8A33D]", bg: "bg-[#E8A33D]/10", dot: "bg-[#E8A33D]" },
 
-  MAINTENANCE: "bg-orange-100 text-orange-700",
+  BOOKED: { text: "text-[#5B6770]", bg: "bg-[#5B6770]/10", dot: "bg-[#5B6770]" },
 
-  BOOKED: "bg-blue-100 text-blue-700",
+  REJECTED: { text: "text-red-600", bg: "bg-red-50", dot: "bg-red-500" },
 
-  ACTIVE: "bg-indigo-100 text-indigo-700",
-
-  COMPLETED: "bg-emerald-100 text-emerald-700",
-
-  DEFAULT: "bg-gray-100 text-gray-700",
+  DEFAULT: { text: "text-[#5B6770]", bg: "bg-[#5B6770]/10", dot: "bg-[#5B6770]" },
 };
 
-const StatusBadge = ({ status }) => {
+/**
+ * @param {string} status - status key, e.g. "APPROVED", "PENDING"
+ * @param {boolean} [dot=true] - show a leading status dot
+ * @param {string} [className] - extra classes merged onto the badge
+ */
+const StatusBadge = ({ status, dot = true, className = "" }) => {
+  const style = STYLES[status] || STYLES.DEFAULT;
+
   return (
     <span
-      className={`px-3 py-1 rounded-full text-sm font-medium ${
-        colors[status] || colors.DEFAULT
-      }`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-mono font-medium tracking-wide uppercase ${style.bg} ${style.text} ${className}`}
     >
+      {dot && <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />}
       {status}
     </span>
   );

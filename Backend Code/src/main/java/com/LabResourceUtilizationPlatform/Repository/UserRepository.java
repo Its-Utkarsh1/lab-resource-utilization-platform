@@ -34,5 +34,13 @@ public interface UserRepository extends JpaRepository<User,Long> {
     );
     Long countByInstitutionIdAndRole_RoleName(Long institutionId, RoleName roleName);
 
+    List<User> findByInstitutionIdAndRoleRoleName(
+            Long institutionId,
+            RoleName roleName
+    );
 
+    Optional<User> findByGoogleId(String googleId);
+
+
+    boolean existsByGoogleId(String googleId);
 }

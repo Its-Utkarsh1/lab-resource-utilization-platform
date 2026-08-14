@@ -1,35 +1,45 @@
-import React from 'react'
+import React from "react";
 
-const StatCard = ({ icon, value, label, trend, trendColor = 'green', onClick }) => {
-  const colorClasses = {
-    green: { bg: 'bg-green-50', icon: 'text-green-600', badge: 'bg-green-100 text-green-700' },
-    blue: { bg: 'bg-blue-50', icon: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
-    amber: { bg: 'bg-amber-50', icon: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
-    red: { bg: 'bg-red-50', icon: 'text-red-600', badge: 'bg-red-100 text-red-700' },
-    purple: { bg: 'bg-purple-50', icon: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
-  }
+// Same token palette as the rest of the app:
+// ink #14181C · paper #F6F5F1 · steel #5B6770 · amber #E8A33D · teal #1F7A6C · line #D8D3C7
 
-  const colors = colorClasses[trendColor] || colorClasses.green
+const ACCENTS = {
+  amber: { hex: "#E8A33D", text: "text-[#E8A33D]", bg: "bg-[#E8A33D]/10" },
+  teal: { hex: "#1F7A6C", text: "text-[#1F7A6C]", bg: "bg-[#1F7A6C]/10" },
+  steel: { hex: "#5B6770", text: "text-[#5B6770]", bg: "bg-[#5B6770]/10" },
+  red: { hex: "#dc2626", text: "text-red-600", bg: "bg-red-50" },
+};
+
+/**
+ * @param {string} title
+ * @param {string|number} value
+ * @param {React.ReactNode} [icon] - emoji, text, or an svg element
+ * @param {"amber"|"teal"|"steel"|"red"} [color="teal"] - accent from the app's palette
+ * @param {string} [subtitle]
+ */
+const StatCard = ({ title, value, icon, color = "teal", subtitle }) => {
+  const accent = ACCENTS[color] || ACCENTS.teal;
 
   return (
-    <div 
-      onClick={onClick}
-      className={`bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all ${onClick ? 'cursor-pointer' : ''}`}
+    <div
+      className="bg-white rounded-sm border border-[#D8D3C7] border-t-2 p-6 hover:border-[#D8D3C7] transition-colors"
+      style={{ borderTopColor: accent.hex }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center`}>
-          <span className={`text-xl ${colors.icon}`}>{icon}</span>
+      <div className="flex justify-between items-start gap-4">
+        <div className="min-w-0">
+          <p className="text-[#5B6770] text-xs font-mono tracking-widest uppercase">{title}</p>
+          <h2 className={`text-4xl font-mono font-bold mt-3 ${accent.text}`}>{value}</h2>
+          {subtitle && <p className="text-xs text-[#5B6770] mt-2">{subtitle}</p>}
         </div>
-        {trend && (
-          <span className={`text-xs font-medium px-3 py-1 rounded-full ${colors.badge}`}>
-            {trend}
-          </span>
+
+        {icon && (
+          <div className={`shrink-0 w-11 h-11 rounded-sm flex items-center justify-center text-xl ${accent.bg} ${accent.text}`}>
+            {icon}
+          </div>
         )}
       </div>
-      <p className="text-3xl font-bold text-slate-900 mb-1">{value}</p>
-      <p className="text-sm text-slate-500 font-medium">{label}</p>
     </div>
-  )
-}
+  );
+};
 
-export default StatCard
+export default StatCard;

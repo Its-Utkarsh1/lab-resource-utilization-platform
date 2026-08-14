@@ -5,8 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,7 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AuthTokenFilter extends OncePerRequestFilter {
@@ -25,61 +25,118 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
 
-    private static final Logger logger  = LoggerFactory.getLogger(AuthTokenFilter.class);
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String path = request.getServletPath();
+        String requestUri = request.getRequestURI();
 
+        log.debug("AuthTokenFilter processing: {}", requestUri);
 
-        if (path.startsWith("/api/auth")
-                || (path.equals("/api/users")
-                && request.getMethod().equalsIgnoreCase("POST"))) {
+        try {
 
-            filterChain.doFilter(request, response);
-            return;
-        }
+            // -----------------------------------------
+            // Get JWT from Authorization header
+            // -----------------------------------------
 
-        logger.debug("AuthTokenFilter called for URL: {}", request.getRequestURI());
-        try{
+            String jwt = jwtUtils.getJwtFromHeader(request);
 
-            String jwt = parseJwt(request);
+            if (jwt != null && !jwt.isBlank()) {
 
-            if(jwt != null && jwtUtils.validateAccessToken(jwt)){
+                log.debug("JWT found for request: {}", requestUri);
 
-                String username = jwtUtils.getUsernameFromAccessToken(jwt);
+                // -----------------------------------------
+                // Validate JWT
+                // -----------------------------------------
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (jwtUtils.validateAccessToken(jwt)) {
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
-                logger.debug("Roles from JWT: {}", userDetails.getAuthorities());
+                    // -----------------------------------------
+                    // Get email/username from JWT
+                    // -----------------------------------------
 
-                //Adding other details from request to authentication
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    String username =
+                            jwtUtils.getUsernameFromAccessToken(jwt);
 
-                logger.debug("Authenticated user: {}", username);
+                    log.debug(
+                            "JWT username/email: {}",
+                            username
+                    );
+
+                    // -----------------------------------------
+                    // Load user
+                    // -----------------------------------------
+
+                    UserDetails userDetails =
+                            userDetailsService
+                                    .loadUserByUsername(username);
+
+                    // -----------------------------------------
+                    // Create authentication
+                    // -----------------------------------------
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
+
+                    // -----------------------------------------
+                    // Set SecurityContext
+                    // -----------------------------------------
+
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(authentication);
+
+                    log.debug(
+                            "Authenticated user: {}",
+                            username
+                    );
+
+                    log.debug(
+                            "Authorities: {}",
+                            userDetails.getAuthorities()
+                    );
+
+                } else {
+
+                    log.warn(
+                            "Invalid or expired JWT for: {}",
+                            requestUri
+                    );
+                }
+
+            } else {
+
+                log.debug(
+                        "No JWT found for request: {}",
+                        requestUri
+                );
             }
-        }catch (Exception e){
-            e.printStackTrace();
+
+        } catch (Exception e) {
+
+            log.error(
+                    "Cannot set user authentication",
+                    e
+            );
+
+            // Clear invalid authentication
+            SecurityContextHolder
+                    .clearContext();
         }
-        //Continue the filter chain as usual
 
-        String jwt = parseJwt(request);
-
-        System.out.println("Request URI: " + request.getRequestURI());
-        System.out.println("JWT: " + jwt);
-
-        if (jwt != null) {
-            System.out.println("Valid: " + jwtUtils.validateAccessToken(jwt));
-        }
-        filterChain.doFilter(request,response);
-    }
-
-    private String parseJwt(HttpServletRequest request){
-        String jwt = jwtUtils.getJwtFromHeader(request);
-        logger.debug("AuthTokenFilter.java: {}", jwt);
-        return jwt;
+        // Continue request
+        filterChain.doFilter(request, response);
     }
 }

@@ -8,6 +8,7 @@ import com.LabResourceUtilizationPlatform.Dtos.Response.UserResponse;
 import com.LabResourceUtilizationPlatform.Entity.*;
 import com.LabResourceUtilizationPlatform.Entity.Enum.EquipmentStatus;
 import com.LabResourceUtilizationPlatform.Entity.Enum.NotificationType;
+import com.LabResourceUtilizationPlatform.Entity.Enum.RoleName;
 import com.LabResourceUtilizationPlatform.Entity.Enum.SharingStatus;
 import com.LabResourceUtilizationPlatform.Repository.EquipmentRepository;
 import com.LabResourceUtilizationPlatform.Repository.EquipmentSharingRepository;
@@ -166,12 +167,30 @@ public class EquipmentSharingServiceImpl implements EquipmentSharingService {
 
         equipmentSharingRepository.save(sharing);
 
-        notificationService.createNotification(
-                loggedInUser.getId(),
-                NotificationType.EQUIPMENT_SHARING,
-                "Sharing Request Submitted",
-                "Your equipment sharing request has been submitted successfully."
-        );
+// Find admins of the institution that owns the equipment
+        List<User> ownerInstitutionAdmins =
+                userRepository.findByInstitutionIdAndRoleRoleName(
+                        sharing.getOwnerInstitution().getId(),
+                        RoleName.INSTITUTION_ADMIN
+                );
+
+// Notify each owner institution admin
+        for (User admin : ownerInstitutionAdmins) {
+
+            notificationService.createNotification(
+                    admin.getId(),
+                    NotificationType.EQUIPMENT_SHARING,
+                    "New Equipment Sharing Request",
+                    loggedInUser.getFullName()
+                            + " from "
+                            + sharing.getRequestInstitution().getName()
+                            + " has requested "
+                            + sharing.getQuantity()
+                            + " unit(s) of "
+                            + sharing.getEquipment().getEquipmentName()
+                            + "."
+            );
+        }
 
         return mapToResponse(sharing);
     }
