@@ -33,7 +33,7 @@ const DashboardLayout = ({ children }) => {
                 </svg>
               </div>
               <Link to="/" className="text-lg font-mono font-bold tracking-widest text-[#14181C] uppercase">
-                LRUP
+                LR
               </Link>
             </div>
 
