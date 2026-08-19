@@ -13,8 +13,10 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 
 // NOTE: was hardcoded to `http://localhost:8080` — set VITE_API_BASE_URL
 // in your .env (adjust if not on Vite).
-const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || "";
-
+const API_BASE_URL =
+  import.meta.env?.VITE_API_BASE_URL ||
+  "https://lab-resource-utilization-platform-1.onrender.com";
+  
 const CATEGORIES = ["ALL", "AVAILABLE", "IN_USE", "UNDER_MAINTENANCE", "OUT_OF_SERVICE"];
 
 const categoryLabel = (cat) => (cat === "ALL" ? "All" : cat === "IN_USE" ? "In Use" : cat.replaceAll("_", " "));

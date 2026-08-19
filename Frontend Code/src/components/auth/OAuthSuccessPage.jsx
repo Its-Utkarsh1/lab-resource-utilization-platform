@@ -9,7 +9,7 @@ import { useAuth } from "../../hooks/useAuth";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:8080";
+  "https://lab-resource-utilization-platform-1.onrender.com";
 
 const OAuthSuccessPage = () => {
   const navigate = useNavigate();

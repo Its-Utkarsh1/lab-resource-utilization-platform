@@ -1,5 +1,7 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
-
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://lab-resource-utilization-platform-1.onrender.com/api'
+  
 export const EQUIPMENT_STATUS = {
   AVAILABLE: 'AVAILABLE',
   UNDER_MAINTENANCE: 'UNDER_MAINTENANCE',

@@ -231,7 +231,7 @@ export const AuthProvider = ({ children }) => {
     );
 
     window.location.href =
-      `http://localhost:8080/oauth2/authorization/${provider}`;
+  `https://lab-resource-utilization-platform-1.onrender.com/oauth2/authorization/${provider}`;
   };
 
 

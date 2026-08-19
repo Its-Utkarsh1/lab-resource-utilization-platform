@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "https://lab-resource-utilization-platform-1.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -88,7 +88,7 @@ api.interceptors.response.use(
         }
 
         const response = await axios.post(
-          "http://localhost:8080/api/auth/refresh-token",
+           "https://lab-resource-utilization-platform-1.onrender.com/api/auth/refresh-token",
           {
             refreshToken,
           }
