@@ -378,6 +378,7 @@ public class SecurityConfig {
                         // EVERYTHING ELSE
                         // =================================================
 
+                        .requestMatchers("/").permitAll()
                         .anyRequest()
                         .authenticated()
                 )
