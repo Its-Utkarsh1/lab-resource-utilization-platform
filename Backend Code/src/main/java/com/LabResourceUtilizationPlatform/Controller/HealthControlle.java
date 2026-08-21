@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -18,10 +19,11 @@ public class HealthController {
 
         long uptime = System.currentTimeMillis() - startTime;
 
-        return Map.of(
-                "status", "ok",
-                "timestamp", Instant.now().toString(),
-                "uptime", uptime
-        );
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "ok");
+        response.put("timestamp", Instant.now().toString());
+        response.put("uptime", uptime);
+
+        return response;
     }
 }
